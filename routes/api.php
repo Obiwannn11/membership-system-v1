@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\MemberController;
 
 // Route Public (Bisa diakses tanpa login)
@@ -21,6 +22,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Route Member Resource (otomatis buat index, store, show, update, destroy)
     Route::apiResource('members', MemberController::class);
+    
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    
+    // 2. Route Manajemen Admin (Khusus Super Admin)
+    Route::apiResource('users', UserController::class);
 
     // Route Khusus Sync
     Route::post('/members/sync', [MemberController::class, 'sync']);

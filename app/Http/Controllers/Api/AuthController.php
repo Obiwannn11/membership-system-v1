@@ -40,6 +40,32 @@ class AuthController extends Controller
         ]);
     }
 
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users,email,'.$user->id,
+            'password' => 'nullable|min:6|confirmed', // password_confirmation wajib dikirim jika password diisi
+        ]);
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+
+        // Jika password diisi, update password
+        if ($request->filled('password')) {
+            $user->password = bcrypt($request->password);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui',
+            'user' => $user
+        ]);
+    }
+
     // Fungsi Logout
     public function logout(Request $request)
     {

@@ -67,6 +67,16 @@ export const useAuthStore = defineStore('auth', {
                 // Jika token invalid/expired, logout paksa
                 this.logout();
             }
+        },
+
+        async updateProfile(data) {
+            try {
+                const response = await api.put('/profile', data);
+                this.user = response.data.user; // Update state lokal
+                return true;
+            } catch (error) {
+                throw error;
+            }
         }
     }
 });

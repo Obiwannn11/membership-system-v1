@@ -42,6 +42,28 @@ const routes = [
                 path: 'members/:id/edit',
                 name: 'MemberEdit',
                 component: MemberEdit
+            },
+            // Route Profile
+            {
+                path: 'profile',
+                name: 'Profile',
+                component: () => import('@/views/Profile.vue') // Lazy load
+            },
+
+            // Route Kelola Admin (Dengan Guard sederhana)
+            {
+                path: 'admins',
+                name: 'AdminList',
+                component: () => import('@/views/AdminList.vue'),
+                beforeEnter: (to, from, next) => {
+                    const auth = useAuthStore();
+                    if (auth.user?.role !== 'super_admin') {
+                        alert('Akses Ditolak');
+                        next('/');
+                    } else {
+                        next();
+                    }
+                }
             }
         ]
     },
