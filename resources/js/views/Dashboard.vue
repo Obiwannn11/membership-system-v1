@@ -23,6 +23,13 @@
                 </div>
             </CardContent>
         </Card>
+        <Card>
+            <CardHeader><CardTitle>Pending Sync</CardTitle></CardHeader>
+            <CardContent>
+                <p class="text-4xl font-bold text-yellow-600">{{ pendingSync }}</p>
+                <p class="text-sm text-gray-500 mt-2">Data belum terkirim</p>
+            </CardContent>
+        </Card>
         
     </div>
   </div>
@@ -30,27 +37,46 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { memberService } from '@/services/memberService';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { memberService } from '@/services/memberService';
+import { useAuthStore } from '@/stores/auth';
 
 const totalMembers = ref(0);
+const pendingSync = ref(0); // Tambahan: Menghitung yang belum sync
 const isLoading = ref(false);
 
 const loadData = async () => {
     isLoading.value = true;
-    
-    // 1. Coba tarik data baru dari server (jika online)
-    await memberService.pullDataFromServer();
-    
-    // 2. Ambil hitungan dari database lokal
-    totalMembers.value = await memberService.countLocalMembers();
-    
-    isLoading.value = false;
+    try {
+        // Jalankan Sync Penuh (Push + Pull)
+        // Kita gunakan navigator.onLine untuk cek internet
+        if (navigator.onLine) {
+            await memberService.syncNow();
+        } else {
+            console.log("Mode Offline: Hanya memuat data lokal.");
+        }
+
+        // Refresh angka-angka tampilan
+        await refreshCounts();
+        
+    } catch (e) {
+        console.error("Sync error:", e);
+        alert("Gagal sinkronisasi. Cek koneksi internet.");
+    } finally {
+        isLoading.value = false;
+    }
 };
 
-// Saat halaman dibuka, jalankan loadData
+// Fungsi helper untuk menghitung ulang angka dashboard
+const refreshCounts = async () => {
+    totalMembers.value = await memberService.countLocalMembers();
+    // Hitung berapa yang belum sync
+    pendingSync.value = await memberService.countPendingMembers();
+};
+
 onMounted(() => {
-    loadData();
+    refreshCounts(); // Tampilkan angka dulu biar cepat
+    loadData();      // Lalu coba sync background
 });
 </script>
