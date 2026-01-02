@@ -55,6 +55,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'vue-sonner';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -91,12 +92,13 @@ const saveMember = async () => {
         // Simpan ke Dexie
         await memberService.addMember(dataToSave);
 
-        alert('Data berhasil disimpan (Offline Mode)!');
+        toast.success('Data anggota Berhasil Dibuat.');
+
         router.push('/members'); // Kembali ke list
         
     } catch (error) {
-        console.error(error);
-        alert('Gagal menyimpan data.');
+        // console.error(error);
+        toast.error('Gagal menyimpan data.');
     } finally {
         isSaving.value = false;
     }

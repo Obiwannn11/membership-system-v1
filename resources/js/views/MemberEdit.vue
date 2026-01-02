@@ -56,6 +56,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'vue-sonner';
 
 const route = useRoute();
 const router = useRouter();
@@ -72,20 +73,32 @@ const form = reactive({
 
 // Ambil data saat halaman dibuka
 onMounted(async () => {
-    const memberId = route.params.id; // Ambil ID dari URL
-    const member = await memberService.getMember(memberId);
-    
-    if (member) {
-        form.name = member.name;
-        form.phone = member.phone;
-        form.address = member.address;
-        form.photo = member.photo;
-        previewPhoto.value = member.photo;
-    } else {
-        alert('Data tidak ditemukan!');
-        router.push('/members');
+    try {
+        const memberId = Number(route.params.id); // Konversi ke Number (PENTING untuk Dexie)
+        
+        // Cek jika ID tidak valid
+        if (!memberId) {
+             throw new Error("ID Member tidak valid");
+        }
+
+        const member = await memberService.getMember(memberId);
+        
+        if (member) {
+            form.name = member.name;
+            form.phone = member.phone;
+            form.address = member.address;
+            form.photo = member.photo;
+            previewPhoto.value = member.photo;
+        } else {
+            toast.error("Data tidak ditemukan");
+            console.log("Ada Toast")
+            router.push('/members');
+        }
+    } catch (e) {
+        toast.error("Gagal memuat data member");
+    } finally {
+        isLoading.value = false;
     }
-    isLoading.value = false;
 });
 
 const handleFileUpload = async (event) => {
@@ -100,12 +113,12 @@ const handleFileUpload = async (event) => {
 const saveChanges = async () => {
     isSaving.value = true;
     try {
-        await memberService.updateMember(route.params.id, form);
-        alert('Data berhasil diperbarui (Pending Sync)!');
+        const memberId = Number(route.params.id);
+        await memberService.updateMember(memberId, form);
         router.push('/members');
+        toast.success('Data Member Berhasil diperbarui !');
     } catch (error) {
-        console.error(error);
-        alert('Gagal update data.');
+        toast.error('Gagal memperbarui data Member');
     } finally {
         isSaving.value = false;
     }

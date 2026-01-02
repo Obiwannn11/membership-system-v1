@@ -93,13 +93,11 @@ const formatPhone = (phone) => {
 
 const members = ref([]);
 
-// Ambil data dari Dexie saat halaman dibuka
+// Ambil data dengan skema OFFLINE-FIRST
+// Push data pending dulu, baru pull, lalu tampilkan dari lokal
 const loadMembers = async () => {
-    // Kita pastikan tarik data terbaru dari server dulu (opsional, biar update)
-    await memberService.pullDataFromServer();
-    
-    // Lalu ambil dari lokal untuk ditampilkan
-    members.value = await memberService.getLocalMembers();
+    // Gunakan fungsi offline-first yang sudah handle push->pull->read
+    members.value = await memberService.loadMembersOfflineFirst();
 };
 
 onMounted(() => {
