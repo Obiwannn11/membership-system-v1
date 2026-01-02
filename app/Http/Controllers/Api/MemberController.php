@@ -111,28 +111,93 @@ class MemberController extends Controller
         $syncedIDs = [];
 
         foreach ($offlineData as $data) {
-            // Logika sederhana: Buat data baru dari offline
-            // Di produksi nanti, kita bisa tambah logika cek duplikat berdasarkan no HP
-            
-            $newMember = Member::create([
-                'user_id' => $request->user()->id,
-                'name' => $data['name'],
-                'phone' => $data['phone'],
-                'address' => $data['address'] ?? null,
-                'status' => 'active',
-                // Foto mungkin perlu penanganan khusus (Base64) nanti
-            ]);
+            // Cek apakah data ini UPDATE (punya server_id) atau CREATE (baru)
+            if (!empty($data['server_id'])) {
+                // UPDATE: Data sudah ada di server, update saja
+                $member = Member::find($data['server_id']);
+                
+                if ($member) {
+                    // Pastikan user punya akses ke member ini
+                    if ($request->user()->role !== 'super_admin' && $member->user_id !== $request->user()->id) {
+                        continue; // Skip jika tidak punya akses
+                    }
 
-            // Catat ID lokal (dari HP) dan ID server (baru dibuat) untuk dikembalikan ke frontend
-            $syncedIDs[] = [
-                'local_id' => $data['id'], // ID dari Dexie
-                'server_id' => $newMember->id // ID dari MySQL
-            ];
+                    $member->update([
+                        'name' => $data['name'],
+                        'phone' => $data['phone'],
+                        'address' => $data['address'] ?? $member->address,
+                        'status' => $data['status'] ?? $member->status,
+                        // Handle foto Base64 jika ada dan berubah
+                        'photo' => $this->handleBase64Photo($data['photo'] ?? null, $member->photo),
+                    ]);
+
+                    $syncedIDs[] = [
+                        'local_id' => $data['id'],
+                        'server_id' => $member->id,
+                        'action' => 'updated'
+                    ];
+                }
+            } else {
+                // CREATE: Data baru dari offline
+                $newMember = Member::create([
+                    'user_id' => $request->user()->id,
+                    'name' => $data['name'],
+                    'phone' => $data['phone'],
+                    'address' => $data['address'] ?? null,
+                    'status' => 'active',
+                    'photo' => $this->handleBase64Photo($data['photo'] ?? null),
+                ]);
+
+                $syncedIDs[] = [
+                    'local_id' => $data['id'],
+                    'server_id' => $newMember->id,
+                    'action' => 'created'
+                ];
+            }
         }
 
         return response()->json([
             'message' => 'Sync berhasil',
             'synced_ids' => $syncedIDs
         ]);
+    }
+
+    /**
+     * Handle foto Base64 dari frontend
+     * @param string|null $base64Photo - Foto dalam format Base64 dari frontend
+     * @param string|null $existingPhoto - Path foto yang sudah ada (untuk update)
+     * @return string|null - Path foto yang disimpan
+     */
+    private function handleBase64Photo($base64Photo, $existingPhoto = null)
+    {
+        // Jika tidak ada foto baru, kembalikan foto lama
+        if (empty($base64Photo)) {
+            return $existingPhoto;
+        }
+
+        // Jika foto baru sama dengan foto lama (path, bukan base64), skip
+        if ($base64Photo === $existingPhoto) {
+            return $existingPhoto;
+        }
+
+        // Cek apakah ini Base64 string (bukan URL/path biasa)
+        if (!preg_match('/^data:image\/(\w+);base64,/', $base64Photo, $matches)) {
+            return $existingPhoto; // Bukan Base64, kembalikan foto lama
+        }
+
+        // Hapus foto lama jika ada
+        if ($existingPhoto) {
+            Storage::disk('public')->delete($existingPhoto);
+        }
+
+        // Decode Base64 dan simpan
+        $extension = $matches[1]; // jpg, png, dll
+        $base64Data = substr($base64Photo, strpos($base64Photo, ',') + 1);
+        $decodedImage = base64_decode($base64Data);
+
+        $filename = 'members/' . uniqid() . '.' . $extension;
+        Storage::disk('public')->put($filename, $decodedImage);
+
+        return $filename;
     }
 }
