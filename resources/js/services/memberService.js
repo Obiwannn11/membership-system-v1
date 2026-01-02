@@ -142,6 +142,26 @@ export const memberService = {
 
     async countPendingMembers() {
         return await db.members.where('is_synced').equals(0).count();
-    }   
+    },   
+
+
+    // 7. AMBIL 1 DATA (Untuk form edit)
+    async getMember(id) {
+        // id yang dipakai adalah ID LOKAL (dari Dexie)
+        return await db.members.get(Number(id));
+    },
+
+    // 8. UPDATE DATA (Offline First)
+    async updateMember(id, newData) {
+        // Update data di Dexie
+        await db.members.update(Number(id), {
+            name: newData.name,
+            phone: newData.phone,
+            address: newData.address,
+            photo: newData.photo, // update foto jika ada
+            is_synced: 0, // PENTING: Reset jadi 0 agar disinkron ulang ke server
+            updated_at: new Date().toISOString()
+        });
+    },
     
 };

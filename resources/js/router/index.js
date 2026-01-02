@@ -3,6 +3,7 @@ import Login from '@/views/Login.vue';
 import Dashboard from '@/views/Dashboard.vue';
 import MemberList from '@/views/MemberList.vue';
 import MemberCreate from '@/views/MemberCreate.vue';
+import MemberEdit from '@/views/MemberEdit.vue';
 import { useAuthStore } from '@/stores/auth'; // Import Store
 
 const routes = [
@@ -29,7 +30,13 @@ const routes = [
     name: 'MemberCreate',
     component: MemberCreate,
     meta: { requiresAuth: true }
-},
+    },
+    {
+    path: '/members/:id/edit', // :id adalah parameter dinamis
+    name: 'MemberEdit',
+    component: MemberEdit,
+    meta: { requiresAuth: true }
+    },
 ];
 
 const router = createRouter({

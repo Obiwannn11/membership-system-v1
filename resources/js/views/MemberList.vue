@@ -25,7 +25,15 @@
             </TableHeader>
             <TableBody>
                 <TableRow v-for="member in members" :key="member.id">
-                <TableCell class="font-medium">{{ member.name }}</TableCell>
+                <TableCell class="font-medium">
+                    <div class="flex items-center gap-3">
+                        <img v-if="member.photo" :src="member.photo" class="w-8 h-8 rounded-full object-cover border" />
+                        <div v-else class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs">
+                            {{ member.name.charAt(0) }}
+                        </div>
+                        {{ member.name }}
+                    </div>
+                </TableCell>
                 <TableCell>{{ member.phone }}</TableCell>
                 <TableCell>
                     <span :class="member.status === 'active' ? 'text-green-600' : 'text-red-600'">
@@ -33,23 +41,29 @@
                     </span>
                 </TableCell>
                 <TableCell>
-                    <span v-if="member.is_synced" class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                        Terupload
+                     <span v-if="member.is_synced" class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                        Aman
                     </span>
                     <span v-else class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                        Belum Sync
+                        Pending
                     </span>
                 </TableCell>
                 <TableCell>
-                    <Button variant="ghost" size="sm">Edit</Button>
+                    <div class="flex gap-2">
+                        <a :href="`https://wa.me/${formatPhone(member.phone)}?text=Halo ${member.name}, membership Anda...`" 
+                           target="_blank"
+                           class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-green-200 bg-green-50 text-green-600 hover:bg-green-100">
+                           <MessageCircleIcon class="w-4 h-4" />
+                        </a>
+
+                        <Button variant="outline" size="icon" class="h-8 w-8" 
+                            @click="$router.push(`/members/${member.id}/edit`)">
+                            <PencilIcon class="w-4 h-4" />
+                        </Button>
+                    </div>
                 </TableCell>
                 </TableRow>
                 
-                <TableRow v-if="members.length === 0">
-                    <TableCell colspan="5" class="text-center py-8 text-gray-500">
-                        Belum ada data anggota.
-                    </TableCell>
-                </TableRow>
             </TableBody>
             </Table>
         </div>
@@ -62,10 +76,20 @@
 import { ref, onMounted } from 'vue';
 import { memberService } from '@/services/memberService';
 import { Button } from '@/components/ui/button';
+import { MessageCircle as MessageCircleIcon, Pencil as PencilIcon } from 'lucide-vue-next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+
+const formatPhone = (phone) => {
+    if (!phone) return '';
+    let p = phone.replace(/[^0-9]/g, ''); // Hapus karakter aneh (spasi, strip)
+    if (p.startsWith('08')) {
+        p = '62' + p.substring(1);
+    }
+    return p;
+};
 
 const members = ref([]);
 
