@@ -5,8 +5,9 @@ import router from '@/router';
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
-        token: localStorage.getItem('auth_token') || null, // Ambil dari storage saat reload
-        loading: false,
+        token: localStorage.getItem('auth_token') || null,
+        loading: false, 
+        loadingUser: false, // TAMBAHAN: Untuk loading screen awal (App.vue)
         error: null
     }),
 
@@ -60,12 +61,21 @@ export const useAuthStore = defineStore('auth', {
         // Fungsi untuk mengambil data user (misal saat refresh halaman)
         async fetchUser() {
             if (!this.token) return;
+            
+            this.loadingUser = true; // Mulai loading
+            
             try {
                 const response = await api.get('/user');
                 this.user = response.data;
             } catch (error) {
-                // Jika token invalid/expired, logout paksa
-                this.logout();
+                // Jika token ternyata sudah expired atau tidak valid
+                console.error("Token invalid, logout paksa.");
+                this.token = null;
+                this.user = null;
+                localStorage.removeItem('auth_token');
+                router.push('/login');
+            } finally {
+                this.loadingUser = false; // Selesai loading
             }
         },
 
