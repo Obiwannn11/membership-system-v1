@@ -1,0 +1,13 @@
+
+Super Admin:
+    ☐ Tambahkan fitur edit profil pada halaman dashboard.
+
+Admin:
+    ☐ Perbaiki format nomor telepon pada daftar anggota agar konsisten dengan format internasional (+62 untuk Indonesia).
+    ☐ Tambahkan tombol "Kirim Pesan" pada setiap baris anggota di halaman daftar anggota yang mengarahkan ke aplikasi pesan dengan nomor telepon anggota tersebut.
+
+Universal:
+    ☐ Perbarui halaman dashboard, menampilkan total member milik masing masing user.
+    ☐ Tabel member tampilkan berapa lama lagi waktu langganannya (ganti tabel no hp)
+    ☐ Tombol Hapus member di bagian edit, lalu muncul konfirmasi sebelum menghapus.
+     
