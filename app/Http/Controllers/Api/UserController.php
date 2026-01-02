@@ -67,6 +67,12 @@ class UserController extends Controller
         return response()->json(['message' => 'Admin berhasil diupdate']);
     }
 
+    public function show(Request $request, $id)
+    {
+        if ($request->user()->role !== 'super_admin') abort(403);
+        return User::findOrFail($id);
+    }
+
     public function destroy(Request $request, $id)
     {
         if ($request->user()->role !== 'super_admin') abort(403);

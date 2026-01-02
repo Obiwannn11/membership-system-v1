@@ -2,7 +2,9 @@
   <div class="p-8">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold">Kelola Admin</h1>
-      <Button variant="outline"> + Tambah Admin (Coming Soon)</Button>
+      <Button @click="$router.push('/admins/create')" class="bg-slate-900 hover:bg-slate-800">
+            + Tambah Admin
+        </Button>
     </div>
 
     <Card>
@@ -24,7 +26,14 @@
                     <TableCell class="uppercase text-xs font-bold">{{ user.role }}</TableCell>
                     <TableCell>{{ new Date(user.created_at).toLocaleDateString() }}</TableCell>
                     <TableCell>
-                        <Button variant="destructive" size="sm" @click="deleteUser(user.id)">Hapus</Button>
+                        <div class="flex gap-2">
+                            <Button variant="outline" size="sm" @click="$router.push(`/admins/${user.id}/edit`)">
+                                Edit
+                            </Button>
+                            <Button variant="destructive" size="sm" @click="deleteUser(user.id)">
+                                Hapus
+                            </Button>
+                        </div>
                     </TableCell>
                 </TableRow>
             </TableBody>

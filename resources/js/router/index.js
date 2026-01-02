@@ -8,6 +8,7 @@ import MemberList from '@/views/MemberList.vue';
 import MemberCreate from '@/views/MemberCreate.vue';
 import MemberEdit from '@/views/MemberEdit.vue';
 
+
 const routes = [
     // 1. Route LOGIN (Tanpa Layout / Full Screen)
     {
@@ -64,7 +65,17 @@ const routes = [
                         next();
                     }
                 }
-            }
+            },
+            {
+                path: 'admins/create',
+                name: 'AdminCreate',
+                component: () => import('@/views/AdminCreate.vue')
+            },
+            {
+                path: 'admins/:id/edit',
+                name: 'AdminEdit',
+                component: () => import('@/views/AdminEdit.vue')
+            },
         ]
     },
     
