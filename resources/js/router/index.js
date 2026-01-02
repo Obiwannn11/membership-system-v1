@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Login from '@/views/Login.vue';
 import Dashboard from '@/views/Dashboard.vue';
+import MemberList from '@/views/MemberList.vue';
 import { useAuthStore } from '@/stores/auth'; // Import Store
 
 const routes = [
@@ -15,7 +16,13 @@ const routes = [
         name: 'Dashboard',
         component: Dashboard,
         meta: { requiresAuth: true } // Penanda halaman butuh login
-    }
+    },
+    {
+    path: '/members',
+    name: 'MemberList',
+    component: MemberList,
+    meta: { requiresAuth: true }
+    },
 ];
 
 const router = createRouter({
