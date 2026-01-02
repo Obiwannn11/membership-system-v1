@@ -1,42 +1,53 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/auth'; // Import Store
+
+import MainLayout from '@/components/layout/MainLayout.vue';
 import Login from '@/views/Login.vue';
 import Dashboard from '@/views/Dashboard.vue';
 import MemberList from '@/views/MemberList.vue';
 import MemberCreate from '@/views/MemberCreate.vue';
 import MemberEdit from '@/views/MemberEdit.vue';
-import { useAuthStore } from '@/stores/auth'; // Import Store
 
 const routes = [
+    // 1. Route LOGIN (Tanpa Layout / Full Screen)
     {
         path: '/login',
         name: 'Login',
         component: Login,
-        meta: { guest: true } // Penanda halaman tamu
+        meta: { guest: true }
     },
+
+    // 2. Route UTAMA (Menggunakan MainLayout)
     {
         path: '/',
-        name: 'Dashboard',
-        component: Dashboard,
-        meta: { requiresAuth: true } // Penanda halaman butuh login
+        component: MainLayout, // Wrapper Layout
+        meta: { requiresAuth: true },
+        children: [
+            {
+                path: '', // Default (Dashboard)
+                name: 'Dashboard',
+                component: Dashboard
+            },
+            {
+                path: 'members', // /members
+                name: 'MemberList',
+                component: MemberList
+            },
+            {
+                path: 'members/create', // /members/create
+                name: 'MemberCreate',
+                component: MemberCreate
+            },
+            {
+                path: 'members/:id/edit',
+                name: 'MemberEdit',
+                component: MemberEdit
+            }
+        ]
     },
-    {
-    path: '/members',
-    name: 'MemberList',
-    component: MemberList,
-    meta: { requiresAuth: true }
-    },
-    {
-    path: '/members/create',
-    name: 'MemberCreate',
-    component: MemberCreate,
-    meta: { requiresAuth: true }
-    },
-    {
-    path: '/members/:id/edit', // :id adalah parameter dinamis
-    name: 'MemberEdit',
-    component: MemberEdit,
-    meta: { requiresAuth: true }
-    },
+    
+    // Catch all 404 handled by Laravel fallback mostly, but good to have wildcard here too for Vue
+    { path: '/:pathMatch(.*)*', redirect: '/' }
 ];
 
 const router = createRouter({
