@@ -2,9 +2,15 @@
   <div class="p-8">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold">Daftar Anggota</h1>
-      <Button @click="$router.push('/members/create')">
-        + Tambah Member
-      </Button>
+      <div class="flex items-center justify-end gap-4">
+          <Button @click="loadMembers" variant="outline" :disabled="isLoading">
+              {{ isLoading ? 'Sedang Sinkronisasi...' : 'Refresh Data' }}
+          </Button>
+          <Button @click="$router.push('/members/create')">
+              + Tambah Member
+            </Button>
+        </div>
+        
     </div>
 
     <Card>
@@ -81,6 +87,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { toast } from 'vue-sonner';
 
 const formatPhone = (phone) => {
     if (!phone) return '';
@@ -91,13 +98,37 @@ const formatPhone = (phone) => {
     return p;
 };
 
+const isLoading = ref(false);
 const members = ref([]);
 
 // Ambil data dengan skema OFFLINE-FIRST
 // Push data pending dulu, baru pull, lalu tampilkan dari lokal
 const loadMembers = async () => {
-    // Gunakan fungsi offline-first yang sudah handle push->pull->read
-    members.value = await memberService.loadMembersOfflineFirst();
+    isLoading.value = true;
+    try {
+        // Jalankan Sync Penuh (Push + Pull)
+        // Kita gunakan navigator.onLine untuk cek internet
+        if (navigator.onLine) {
+            // Gunakan fungsi offline-first yang sudah handle push->pull->read
+            members.value = await memberService.loadMembersOfflineFirst();
+            setTimeout(() => {
+            toast.success('Sinkronisasi selesai.');
+            }, 200);
+        } else {
+            members.value = await memberService.loadMembersOfflineFirst();
+            toast.warning('Mode Offline: Memuat data lokal.');
+            console.log("Mode Offline: Hanya memuat data lokal.");
+        }
+
+    } catch (e) {
+        console.error("Sync error:", e);
+        toast.error("Gagal sinkronisasi. Cek koneksi internet.");
+        // alert("Gagal sinkronisasi. Cek koneksi internet.");
+
+    } finally {
+        isLoading.value = false;
+    }
+    
 };
 
 onMounted(() => {
