@@ -47,16 +47,122 @@
 
     <div class="p-4 border-t bg-slate-50">
        <div class="flex items-center gap-3">
-          <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span class="text-xs font-medium text-slate-500">System Online</span>
+          <div :class="['w-2 h-2 rounded-full', connectionStatusClass]"></div>
+          <span :class="['text-xs font-medium', connectionTextClass]">
+            {{ connectionStatusText }}
+          </span>
        </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { Home as HomeIcon, Users as UsersIcon, ShieldCheck as ShieldCheckIcon } from 'lucide-vue-next';
+import api from '@/lib/axios';
 
 const authStore = useAuthStore();
+
+// Connection status: 'online' | 'offline' | 'unstable' | 'checking'
+const connectionStatus = ref('checking');
+let pingInterval = null;
+
+// Computed classes berdasarkan status
+const connectionStatusClass = computed(() => {
+  switch (connectionStatus.value) {
+    case 'online': return 'bg-green-500 animate-pulse';
+    case 'offline': return 'bg-red-500';
+    case 'unstable': return 'bg-yellow-500 animate-pulse';
+    case 'checking': return 'bg-gray-400 animate-pulse';
+    default: return 'bg-gray-400';
+  }
+});
+
+const connectionTextClass = computed(() => {
+  switch (connectionStatus.value) {
+    case 'online': return 'text-slate-500';
+    case 'offline': return 'text-red-600';
+    case 'unstable': return 'text-yellow-600';
+    case 'checking': return 'text-gray-500';
+    default: return 'text-gray-500';
+  }
+});
+
+const connectionStatusText = computed(() => {
+  switch (connectionStatus.value) {
+    case 'online': return 'System Online';
+    case 'offline': return 'Offline Mode';
+    case 'unstable': return 'Koneksi Lambat';
+    case 'checking': return 'Mengecek...';
+    default: return 'Unknown';
+  }
+});
+
+// Ping ke server untuk cek koneksi sebenarnya
+const checkConnection = async () => {
+  // Jika browser bilang offline, langsung set offline
+  if (!navigator.onLine) {
+    connectionStatus.value = 'offline';
+    return;
+  }
+
+  const startTime = Date.now();
+  
+  try {
+    // Ping ke endpoint yang ringan (bisa buat /api/ping atau pakai /sanctum/csrf-cookie)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 detik timeout
+    
+    await api.get('/ping', { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
+    const responseTime = Date.now() - startTime;
+    
+    // Klasifikasi berdasarkan response time
+    if (responseTime < 2000) {
+      connectionStatus.value = 'online'; // < 2 detik = OK
+    } else {
+      connectionStatus.value = 'unstable'; // 2-5 detik = lambat
+    }
+    
+  } catch (error) {
+    if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
+      // Timeout - jaringan sangat lambat
+      connectionStatus.value = 'unstable';
+    } else {
+      // Error lain - kemungkinan offline atau server down
+      connectionStatus.value = 'offline';
+    }
+  }
+};
+
+// Handle browser online/offline events
+const handleOnlineChange = () => {
+  if (!navigator.onLine) {
+    connectionStatus.value = 'offline';
+  } else {
+    // Browser bilang online, tapi cek dulu beneran bisa akses server
+    connectionStatus.value = 'checking';
+    checkConnection();
+  }
+};
+
+onMounted(() => {
+  // Cek koneksi saat mount
+  checkConnection();
+  
+  // Ping setiap 30 detik
+  pingInterval = setInterval(checkConnection, 30000);
+  
+  // Listen browser online/offline
+  window.addEventListener('online', handleOnlineChange);
+  window.addEventListener('offline', handleOnlineChange);
+});
+
+onUnmounted(() => {
+  if (pingInterval) clearInterval(pingInterval);
+  window.removeEventListener('online', handleOnlineChange);
+  window.removeEventListener('offline', handleOnlineChange);
+});
 </script>

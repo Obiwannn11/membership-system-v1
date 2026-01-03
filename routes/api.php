@@ -9,6 +9,11 @@ use App\Http\Controllers\Api\MemberController;
 // Route Public (Bisa diakses tanpa login)
 Route::post('/login', [AuthController::class, 'login']);
 
+// Ping endpoint untuk cek koneksi (ringan, tanpa auth)
+Route::get('/ping', function () {
+    return response()->json(['status' => 'ok', 'timestamp' => now()->toISOString()]);
+});
+
 // Route Protected (Harus login/punya token dulu)
 Route::middleware('auth:sanctum')->group(function () {
     
