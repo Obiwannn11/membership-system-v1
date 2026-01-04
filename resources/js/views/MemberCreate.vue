@@ -14,7 +14,6 @@
             <CardTitle class="text-lg">Foto Member</CardTitle>
           </CardHeader>
           <CardContent class="flex flex-col items-center gap-4">
-            <!-- Preview -->
             <div class="w-40 h-40 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
               <img v-if="previewPhoto" :src="previewPhoto" class="w-full h-full object-cover" />
               <div v-else class="text-center text-gray-400">
@@ -56,6 +55,12 @@
               <Input id="address" v-model="form.address" placeholder="Jalan..." />
             </div>
 
+            <div class="space-y-2">
+              <Label for="valid_until">Berlaku Sampai</Label>
+              <Input id="valid_until" type="date" v-model="form.valid_until" required />
+              <p class="text-xs text-gray-400">Tanggal berakhir membership</p>
+            </div>
+
             <div class="flex justify-end gap-4 pt-4 border-t">
               <Button type="button" variant="outline" @click="$router.back()">Batal</Button>
               <Button type="submit" :disabled="isSaving">
@@ -88,21 +93,26 @@ const authStore = useAuthStore();
 const isSaving = ref(false);
 const previewPhoto = ref(null);
 
+// Default valid_until: 1 bulan dari sekarang
+const getDefaultValidUntil = () => {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 1);
+  return date.toISOString().split('T')[0];
+};
+
 const form = reactive({
     name: '',
     phone: '',
     address: '',
-    photo: null // File object
+    photo: null,
+    valid_until: getDefaultValidUntil()
 });
 
 const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-        // Validasi ukuran (max 2MB)
         if (file.size > 2 * 1024 * 1024) {
-            toast.error('Ukuran file terlalu besar', {
-                description: 'Maksimal 2MB'
-            });
+            toast.error('Ukuran file terlalu besar', { description: 'Maksimal 2MB' });
             return;
         }
         form.photo = file;

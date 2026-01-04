@@ -14,7 +14,6 @@
               <CardTitle class="text-lg">Foto Member</CardTitle>
             </CardHeader>
             <CardContent class="flex flex-col items-center gap-4">
-              <!-- Preview -->
               <div class="w-40 h-40 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
                 <img v-if="previewPhoto" :src="previewPhoto" class="w-full h-full object-cover" />
                 <div v-else class="text-center text-gray-400">
@@ -56,14 +55,18 @@
                 <Input v-model="form.address" />
               </div>
 
+              <div class="space-y-2">
+                <Label>Berlaku Sampai</Label>
+                <Input type="date" v-model="form.valid_until" required />
+                <p class="text-xs text-gray-400">Tanggal berakhir membership</p>
+              </div>
+
               <div class="flex justify-between items-center gap-4 pt-4 border-t">
-                <!-- Delete Button -->
                 <Button type="button" variant="destructive" @click="confirmDelete">
                   <Trash2Icon class="w-4 h-4 mr-2" />
                   Hapus Member
                 </Button>
                 
-                <!-- Save/Cancel -->
                 <div class="flex gap-3">
                   <Button type="button" variant="outline" @click="$router.back()">Batal</Button>
                   <Button type="submit" :disabled="isSaving">
@@ -127,7 +130,8 @@ const form = reactive({
     name: '',
     phone: '',
     address: '',
-    photo: null
+    photo: null,
+    valid_until: ''
 });
 
 onMounted(async () => {
@@ -142,6 +146,7 @@ onMounted(async () => {
             form.phone = member.phone;
             form.address = member.address;
             form.photo = member.photo;
+            form.valid_until = member.valid_until || '';
             previewPhoto.value = memberService.getPhotoUrl(member.photo);
         } else {
             toast.error("Data tidak ditemukan");
@@ -171,6 +176,7 @@ const saveChanges = async () => {
     try {
         const memberId = Number(route.params.id);
         await memberService.updateMember(memberId, form);
+        console.log("Updated member:", memberId, form);
         toast.success('Data Member berhasil diperbarui!');
         router.push('/members');
     } catch (error) {
