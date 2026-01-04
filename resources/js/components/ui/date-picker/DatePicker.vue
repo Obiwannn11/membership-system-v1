@@ -9,12 +9,13 @@
         )"
       >
         <CalendarIcon class="mr-2 h-4 w-4" />
-        {{ modelValue ? formatDate(modelValue) : 'Pilih tanggal' }}
+        {{ displayDate }}
       </Button>
     </PopoverTrigger>
-    <PopoverContent class="w-auto p-0">
+    <PopoverContent class="w-auto p-0" align="start">
       <Calendar 
-        v-model="internalValue" 
+        v-model="calendarValue"
+        initial-focus
         @update:model-value="handleSelect"
       />
     </PopoverContent>
@@ -22,7 +23,8 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { computed } from 'vue';
+import { CalendarDate, getLocalTimeZone, today, parseDate } from '@internationalized/date';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -35,27 +37,42 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
-const internalValue = ref(props.modelValue ? new Date(props.modelValue) : undefined);
-
-watch(() => props.modelValue, (newVal) => {
-  internalValue.value = newVal ? new Date(newVal) : undefined;
+// Convert string 'YYYY-MM-DD' to CalendarDate object
+const calendarValue = computed({
+  get() {
+    if (!props.modelValue) return undefined;
+    try {
+      return parseDate(props.modelValue);
+    } catch {
+      return undefined;
+    }
+  },
+  set(val) {
+    // This is handled by handleSelect
+  }
 });
 
 const handleSelect = (date) => {
   if (date) {
-    // Convert to YYYY-MM-DD format
-    const formatted = date.toISOString().split('T')[0];
+    // Convert CalendarDate to 'YYYY-MM-DD' string
+    const formatted = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
     emit('update:modelValue', formatted);
   }
 };
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-};
+const displayDate = computed(() => {
+  if (!props.modelValue) return 'Pilih tanggal';
+  try {
+    const date = parseDate(props.modelValue);
+    // Format ke bahasa Indonesia
+    const jsDate = date.toDate(getLocalTimeZone());
+    return jsDate.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  } catch {
+    return 'Pilih tanggal';
+  }
+});
 </script>
