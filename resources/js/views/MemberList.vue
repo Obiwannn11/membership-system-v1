@@ -32,11 +32,10 @@
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead class="w-20">Foto</TableHead>
+                <TableHead class="w-24">Foto</TableHead>
                 <TableHead>Nama</TableHead>
                 <TableHead>No HP</TableHead>
-                <TableHead>Status Member</TableHead>
-                <TableHead>Berlaku s/d</TableHead>
+                <TableHead class="text-center">Status & Berlaku</TableHead>
                 <TableHead class="text-center w-24">Aksi</TableHead>
                 <TableHead class="w-12 text-center">
                   <Tooltip>
@@ -72,21 +71,28 @@
                   {{ member.name }}
                 </TableCell>
 
-                <!-- No HP - Masked -->
+                <!-- No HP - Masked with Tooltip -->
                 <TableCell class="font-mono text-sm">
-                  {{ maskPhone(member.phone) }}
+                  <Tooltip>
+                    <TooltipTrigger class="cursor-help underline decoration-dotted underline-offset-2">
+                      {{ maskPhone(member.phone) }}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p class="font-mono">{{ member.phone || '-' }}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </TableCell>
 
-                <!-- Status Member -->
+                <!-- Status & Countdown Combined -->
                 <TableCell>
-                  <span :class="getStatusBadgeClass(getMembershipStatus(member.valid_until))">
-                    {{ getStatusLabel(getMembershipStatus(member.valid_until)) }}
-                  </span>
-                </TableCell>
-
-                <!-- Valid Until -->
-                <TableCell class="text-sm text-gray-600">
-                  {{ formatDate(member.valid_until) }}
+                  <div class="flex flex-col gap-1 items-center">
+                    <span :class="getStatusBadgeClass(getMembershipStatus(member.valid_until))" class="w-fit">
+                      {{ getStatusLabel(getMembershipStatus(member.valid_until)) }}
+                    </span>
+                    <span :class="getCountdownClass(member.valid_until)" class="text-xs font-medium">
+                      {{ getCountdownText(member.valid_until) }}
+                    </span>
+                  </div>
                 </TableCell>
 
                 <!-- Aksi -->
@@ -147,7 +153,7 @@
               </TableRow>
 
               <TableRow v-if="paginatedMembers.length === 0">
-                <TableCell colspan="7" class="text-center py-12 text-gray-500">
+                <TableCell colspan="6" class="text-center py-12 text-gray-500">
                   {{ searchQuery ? 'Tidak ada hasil pencarian' : 'Belum ada data member' }}
                 </TableCell>
               </TableRow>
@@ -222,9 +228,14 @@
           <div class="col-span-2 space-y-4">
             <div>
               <h3 class="text-2xl font-bold">{{ previewMember.name }}</h3>
-              <span :class="getStatusBadgeClass(getMembershipStatus(previewMember.valid_until))">
-                {{ getStatusLabel(getMembershipStatus(previewMember.valid_until)) }}
-              </span>
+              <div class="flex flex-col gap-1 mt-2 items-start">
+                <span :class="getStatusBadgeClass(getMembershipStatus(previewMember.valid_until))" class="w-fit" >
+                  {{ getStatusLabel(getMembershipStatus(previewMember.valid_until)) }}
+                </span>
+                <span :class="getCountdownClass(previewMember.valid_until)" class="text-sm font-medium">
+                  {{ getCountdownText(previewMember.valid_until) }}
+                </span>
+              </div>
             </div>
 
             <div class="space-y-2 text-sm">
@@ -269,7 +280,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Search as SearchIcon, 
   MessageCircle as MessageCircleIcon, 
@@ -332,11 +343,11 @@ const getMembershipStatus = (validUntil) => {
   const oneWeekMakassar = new Date(oneWeekAfter.toLocaleString('en-US', { timeZone: 'Asia/Makassar' }));
   
   if (nowMakassar <= validMakassar) {
-    return 'active'; // Belum lewat tanggal valid
+    return 'active';
   } else if (nowMakassar <= oneWeekMakassar) {
-    return 'expired'; // Lewat tapi belum 1 minggu
+    return 'expired';
   } else {
-    return 'inactive'; // Lewat lebih dari 1 minggu
+    return 'inactive';
   }
 };
 
@@ -351,11 +362,46 @@ const getStatusLabel = (status) => {
 
 const getStatusBadgeClass = (status) => {
   const classes = {
-    active: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800',
-    expired: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800',
-    inactive: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800'
+    active: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800',
+    expired: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800',
+    inactive: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800'
   };
   return classes[status] || classes.inactive;
+};
+
+// ========== COUNTDOWN HELPERS ==========
+const getDaysRemaining = (validUntil) => {
+  if (!validUntil) return null;
+  
+  const now = new Date();
+  const validDate = new Date(validUntil);
+  
+  // Reset ke awal hari untuk perbandingan yang akurat
+  now.setHours(0, 0, 0, 0);
+  validDate.setHours(0, 0, 0, 0);
+  
+  const diffTime = validDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays;
+};
+
+const getCountdownText = (validUntil) => {
+  const days = getDaysRemaining(validUntil);
+  
+  if (days === null) return '-';
+  if (days > 0) return `${days} hari lagi`;
+  if (days === 0) return 'Hari ini';
+  return `Lewat ${Math.abs(days)} hari`;
+};
+
+const getCountdownClass = (validUntil) => {
+  const days = getDaysRemaining(validUntil);
+  
+  if (days === null) return 'text-gray-400';
+  if (days > 7) return 'text-green-600 '; // Masih aman
+  if (days > 0) return 'text-orange-600'; // Hampir expired (< 1 minggu)
+  return 'text-red-600'; // Sudah lewat
 };
 
 // ========== STATE ==========
@@ -397,32 +443,27 @@ const paginatedMembers = computed(() => {
   return filteredMembers.value.slice(start, end);
 });
 
-// Smart pagination: [1] [2] [...] [n-2] [n-1] [n]
+// Smart pagination
 const paginationItems = computed(() => {
   const total = totalPages.value;
   const current = currentPage.value;
   const items = [];
   
   if (total <= 7) {
-    // Show all pages if 7 or less
     for (let i = 1; i <= total; i++) {
       items.push(i);
     }
   } else {
-    // Always show first page
     items.push(1);
     
     if (current <= 3) {
-      // Near start: [1] [2] [3] [4] [...] [n-1] [n]
       items.push(2, 3, 4);
       items.push('...');
       items.push(total - 1, total);
     } else if (current >= total - 2) {
-      // Near end: [1] [...] [n-3] [n-2] [n-1] [n]
       items.push('...');
       items.push(total - 3, total - 2, total - 1, total);
     } else {
-      // Middle: [1] [...] [c-1] [c] [c+1] [...] [n]
       items.push('...');
       items.push(current - 1, current, current + 1);
       items.push('...');
