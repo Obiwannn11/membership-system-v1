@@ -127,6 +127,7 @@ class MemberController extends Controller
                         'phone' => $data['phone'],
                         'address' => $data['address'] ?? $member->address,
                         'status' => $data['status'] ?? $member->status,
+                        'valid_until' => $data['valid_until'] ?? $member->valid_until,
                         // Handle foto Base64 jika ada dan berubah
                         'photo' => $this->handleBase64Photo($data['photo'] ?? null, $member->photo),
                     ]);
@@ -145,6 +146,7 @@ class MemberController extends Controller
                     'phone' => $data['phone'],
                     'address' => $data['address'] ?? null,
                     'status' => 'active',
+                    'valid_until' => $data['valid_until'] ?? null,
                     'photo' => $this->handleBase64Photo($data['photo'] ?? null),
                 ]);
 

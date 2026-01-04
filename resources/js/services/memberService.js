@@ -70,6 +70,7 @@ export const memberService = {
                     phone: member.phone,
                     address: member.address,
                     status: member.status,
+                    valid_until: member.valid_until, // Tambah ini
                     sync_action: member.sync_action
                 };
 
@@ -149,7 +150,8 @@ export const memberService = {
             name: formData.name,
             phone: formData.phone,
             address: formData.address,
-            photo: formData.photo, // File object atau null
+            photo: formData.photo,
+            valid_until: formData.valid_until || null, // Tambah ini
             status: 'active',
             is_synced: 0,
             sync_action: 'create',
@@ -167,12 +169,12 @@ export const memberService = {
             phone: newData.phone,
             address: newData.address,
             photo: newData.photo,
+            valid_until: newData.valid_until || null, // Tambah ini
             is_synced: 0,
             sync_action: existingMember?.server_id ? 'update' : 'create',
             updated_at: new Date().toISOString()
         });
 
-        // Auto-sync jika online
         if (navigator.onLine && existingMember?.server_id) {
             try {
                 await this.pushDataToServer();
