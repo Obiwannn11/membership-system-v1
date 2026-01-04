@@ -3,8 +3,7 @@ import { db } from '@/lib/db';
 
 export const memberService = {
     
-    // 1. FUNGSI PULL: Ambil data dari Server -> Simpan ke Dexie
-    // OFFLINE-FIRST: Jangan overwrite data lokal yang belum di-sync!
+    // ========== PULL: Server -> Dexie ==========
     async pullDataFromServer() {
         try {
             const response = await api.get('/members');
@@ -12,20 +11,16 @@ export const memberService = {
             let syncedCount = 0;
             let skippedCount = 0;
 
-            // Gunakan Transaction agar aman dan atomik
             await db.transaction('rw', db.members, async () => {
                 for (const member of membersFromServer) {
-                    // 1. Cek apakah member ini sudah ada di Dexie berdasarkan server_id
                     const existing = await db.members.where('server_id').equals(member.id).first();
 
-                    // 2. OFFLINE-FIRST CHECK: Jika data lokal masih PENDING, JANGAN OVERWRITE!
+                    // OFFLINE-FIRST: Jangan overwrite data pending
                     if (existing && existing.is_synced === 0) {
-                        console.log(`SKIP: Data "${existing.name}" masih pending sync, tidak di-overwrite.`);
                         skippedCount++;
-                        continue; // Skip, jangan update data ini
+                        continue;
                     }
 
-                    // 3. Siapkan data yang mau disimpan
                     const dataToSave = {
                         server_id: member.id,
                         user_id: member.user_id,
@@ -35,60 +30,180 @@ export const memberService = {
                         photo: member.photo,
                         status: member.status,
                         valid_until: member.valid_until,
-                        is_synced: 1, // Tandai sudah sinkron
-                        sync_action: null // Clear action
+                        is_synced: 1,
+                        sync_action: null
                     };
 
-                    // 4. Jika sudah ada, Pakai ID lokal lama (agar ter-update, bukan insert baru)
                     if (existing) {
-                        dataToSave.id = existing.id; 
+                        dataToSave.id = existing.id;
                     }
 
-                    // 5. Simpan (Put akan otomatis Update jika ID ada, atau Insert jika tidak)
                     await db.members.put(dataToSave);
                     syncedCount++;
                 }
             });
-            
-            console.log(`Pull selesai: ${syncedCount} updated, ${skippedCount} skipped (pending).`);
-            return { synced: syncedCount, skipped: skippedCount };
 
+            return { synced: syncedCount, skipped: skippedCount };
         } catch (error) {
-            console.error("Gagal menarik data server:", error);
-            // Jangan throw, biarkan app tetap jalan offline
+            console.error("Pull failed:", error);
             return { synced: 0, skipped: 0, error: true };
         }
     },
 
-    // 2. FUNGSI READ: Ambil data dari Dexie (untuk ditampilkan di UI)
+    // ========== PUSH: Dexie -> Server ==========
+    async pushDataToServer() {
+        try {
+            const unsyncedMembers = await db.members
+                .where('is_synced')
+                .equals(0)
+                .toArray();
+
+            if (unsyncedMembers.length === 0) return 0;
+
+            // Prepare FormData untuk upload dengan foto
+            const membersToSync = [];
+            for (const member of unsyncedMembers) {
+                const memberData = {
+                    id: member.id,
+                    server_id: member.server_id,
+                    name: member.name,
+                    phone: member.phone,
+                    address: member.address,
+                    status: member.status,
+                    sync_action: member.sync_action
+                };
+
+                // Handle foto - jika ada File object, convert ke base64 untuk sync
+                if (member.photo instanceof File) {
+                    memberData.photo = await this.fileToBase64(member.photo);
+                } else {
+                    memberData.photo = member.photo;
+                }
+
+                membersToSync.push(memberData);
+            }
+
+            const response = await api.post('/members/sync', { 
+                members: membersToSync 
+            });
+
+            const syncedIDs = response.data.synced_ids;
+
+            await db.transaction('rw', db.members, async () => {
+                for (const item of syncedIDs) {
+                    await db.members.update(item.local_id, {
+                        server_id: item.server_id,
+                        is_synced: 1,
+                        sync_action: null,
+                        photo: item.photo_path || null // Update dengan path dari server
+                    });
+                }
+            });
+
+            return unsyncedMembers.length;
+        } catch (error) {
+            console.error("Push failed:", error);
+            throw error;
+        }
+    },
+
+    // ========== SYNC ORCHESTRATION ==========
+    async syncNow() {
+        const pushedCount = await this.pushDataToServer();
+        const pullResult = await this.pullDataFromServer();
+        return { pushed: pushedCount, pulled: pullResult.synced, skipped: pullResult.skipped };
+    },
+
+    async loadMembersOfflineFirst() {
+        if (navigator.onLine) {
+            try {
+                await this.pushDataToServer();
+                await this.pullDataFromServer();
+            } catch (error) {
+                console.warn('Sync failed, using local data:', error);
+            }
+        }
+        return await this.getLocalMembers();
+    },
+
+    // ========== LOCAL CRUD ==========
     async getLocalMembers() {
         return await db.members.toArray();
     },
 
-    // 3. FUNGSI COUNT: Hitung total member lokal
+    async getMember(id) {
+        return await db.members.get(Number(id));
+    },
+
     async countLocalMembers() {
         return await db.members.count();
     },
 
-    // 4. FUNGSI CREATE (Offline First)
+    async countPendingMembers() {
+        return await db.members.where('is_synced').equals(0).count();
+    },
+
     async addMember(formData) {
-        // Kita simpan ke Dexie dengan status belum sync
         const id = await db.members.add({
-            user_id: formData.user_id, // Nanti diambil dari User yang login
+            user_id: formData.user_id,
             name: formData.name,
             phone: formData.phone,
             address: formData.address,
-            photo: formData.photo, // Base64 string
+            photo: formData.photo, // File object atau null
             status: 'active',
-            is_synced: 0, // PENTING: Tandai sebagai data pending
-            sync_action: 'create', // Tandai ini adalah data baru
+            is_synced: 0,
+            sync_action: 'create',
             created_at: new Date().toISOString()
         });
-        
         return id;
     },
-    
-    // Helper: Konversi File Gambar ke Base64 agar bisa disimpan di Dexie
+
+    async updateMember(id, newData) {
+        const numericId = Number(id);
+        const existingMember = await db.members.get(numericId);
+
+        await db.members.update(numericId, {
+            name: newData.name,
+            phone: newData.phone,
+            address: newData.address,
+            photo: newData.photo,
+            is_synced: 0,
+            sync_action: existingMember?.server_id ? 'update' : 'create',
+            updated_at: new Date().toISOString()
+        });
+
+        // Auto-sync jika online
+        if (navigator.onLine && existingMember?.server_id) {
+            try {
+                await this.pushDataToServer();
+            } catch (error) {
+                console.warn('Auto-sync failed:', error);
+            }
+        }
+    },
+
+    async deleteMember(id) {
+        const numericId = Number(id);
+        const member = await db.members.get(numericId);
+
+        if (!member) throw new Error('Member not found');
+
+        // Jika punya server_id dan online, hapus dari server juga
+        if (member.server_id && navigator.onLine) {
+            try {
+                await api.delete(`/members/${member.server_id}`);
+            } catch (error) {
+                console.error('Failed to delete from server:', error);
+                throw error;
+            }
+        }
+
+        // Hapus dari Dexie
+        await db.members.delete(numericId);
+        return true;
+    },
+
+    // ========== HELPERS ==========
     fileToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -97,123 +212,13 @@ export const memberService = {
             reader.onerror = error => reject(error);
         });
     },
-    // ... function addMember, pullData, dll ...
 
-    // 5. FUNGSI PUSH: Kirim data offline ke Server
-    async pushDataToServer() {
-        try {
-            // A. Cari data yang belum sync
-            const unsyncedMembers = await db.members
-                .where('is_synced')
-                .equals(0)
-                .toArray();
-
-            if (unsyncedMembers.length === 0) {
-                console.log("Tidak ada data offline yang perlu dikirim.");
-                return 0; // Tidak ada yang perlu disync
-            }
-
-            console.log(`Mengirim ${unsyncedMembers.length} data ke server...`);
-
-            // B. Kirim ke API Laravel
-            // Kita kirim array 'members' sesuai yang diminta controller
-            const response = await api.post('/members/sync', { 
-                members: unsyncedMembers 
-            });
-
-            const syncedIDs = response.data.synced_ids; // Balikan dari server: [{local_id: 1, server_id: 105}, ...]
-
-            // C. Update status data di Dexie berdasarkan balasan server
-            await db.transaction('rw', db.members, async () => {
-                for (const item of syncedIDs) {
-                    // Update record lokal: isi server_id, set synced = 1, clear sync_action
-                    await db.members.update(item.local_id, {
-                        server_id: item.server_id,
-                        is_synced: 1,
-                        sync_action: null // Clear action setelah sync berhasil
-                    });
-                }
-            });
-
-            console.log("Push Sync selesai!");
-            return unsyncedMembers.length;
-
-        } catch (error) {
-            console.error("Gagal mengirim data offline:", error);
-            throw error; // Lempar error agar UI tahu kalau gagal
-        }
-    },
-
-    // 6. FUNGSI ORKESTRASI (Gabungan Pull & Push)
-    // Ini fungsi utama yang dipanggil tombol "Sync"
-    async syncNow() {
-        // 1. Kirim data lokal dulu (Push) - OFFLINE FIRST!
-        const pushedCount = await this.pushDataToServer();
-        
-        // 2. Tarik data terbaru dari server (Pull)
-        const pullResult = await this.pullDataFromServer();
-
-        return { pushed: pushedCount, pulled: pullResult.synced, skipped: pullResult.skipped };
-    },
-
-    // 6b. FUNGSI LOAD DATA UNTUK UI (Offline-First)
-    // Gunakan ini di MemberList.vue, bukan langsung pullDataFromServer()
-    async loadMembersOfflineFirst() {
-        // Jika online, coba sync dulu
-        if (navigator.onLine) {
-            try {
-                // PUSH DULU data pending ke server
-                await this.pushDataToServer();
-                // Baru PULL data dari server (dengan proteksi skip pending)
-                await this.pullDataFromServer();
-            } catch (error) {
-                console.warn('Sync gagal, tampilkan data lokal:', error);
-            }
-        }
-        
-        // Selalu kembalikan data dari lokal (single source of truth)
-        return await this.getLocalMembers();
-    },
-
-    async countPendingMembers() {
-        return await db.members.where('is_synced').equals(0).count();
-    },   
-
-
-    // 7. AMBIL 1 DATA (Untuk form edit)
-    async getMember(id) {
-        // id yang dipakai adalah ID LOKAL (dari Dexie)
-        return await db.members.get(Number(id));
-    },
-
-    // 8. UPDATE DATA (Offline First with Auto-Sync)
-    async updateMember(id, newData) {
-        const numericId = Number(id);
-        
-        // Ambil data existing untuk cek apakah punya server_id
-        const existingMember = await db.members.get(numericId);
-        
-        // Update data di Dexie
-        await db.members.update(numericId, {
-            name: newData.name,
-            phone: newData.phone,
-            address: newData.address,
-            photo: newData.photo, // update foto jika ada
-            is_synced: 0, // PENTING: Reset jadi 0 agar disinkron ulang ke server
-            sync_action: existingMember?.server_id ? 'update' : 'create', // Tandai action
-            updated_at: new Date().toISOString()
-        });
-
-        // Auto-sync jika online dan data punya server_id
-        if (navigator.onLine && existingMember?.server_id) {
-            try {
-                await this.pushDataToServer();
-                console.log('Auto-sync update berhasil');
-            } catch (error) {
-                console.warn('Auto-sync gagal, data akan disync nanti:', error);
-                // Tidak throw error, biarkan data tetap pending
-            }
-        }
-    },
-    
+    // Helper: Dapatkan URL foto yang benar (handle base64 vs path)
+    getPhotoUrl(photo) {
+        if (!photo) return null;
+        if (photo instanceof File) return URL.createObjectURL(photo);
+        if (photo.startsWith('data:')) return photo; // Base64
+        if (photo.startsWith('http')) return photo; // Full URL
+        return `/storage/${photo}`; // Laravel storage path
+    }
 };
