@@ -56,8 +56,8 @@
             </div>
 
             <div class="space-y-2">
-              <Label for="valid_until">Berlaku Sampai</Label>
-              <Input id="valid_until" type="date" v-model="form.valid_until" required />
+              <Label>Berlaku Sampai</Label>
+              <DatePicker v-model="form.valid_until" />
               <p class="text-xs text-gray-400">Tanggal berakhir membership</p>
             </div>
 
@@ -87,6 +87,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Image as ImageIcon, Upload as UploadIcon } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const router = useRouter();
 const authStore = useAuthStore();

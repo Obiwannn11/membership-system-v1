@@ -57,7 +57,7 @@
 
               <div class="space-y-2">
                 <Label>Berlaku Sampai</Label>
-                <Input type="date" v-model="form.valid_until" required />
+                <DatePicker v-model="form.valid_until" />
                 <p class="text-xs text-gray-400">Tanggal berakhir membership</p>
               </div>
 
@@ -118,6 +118,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'vue-sonner';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const route = useRoute();
 const router = useRouter();
