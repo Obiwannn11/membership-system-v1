@@ -40,43 +40,45 @@ import { ref, onMounted } from 'vue';
 import { memberService } from '@/services/memberService';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/stores/auth';
+import { toast } from 'vue-sonner';
 
 const totalMembers = ref(0);
-const pendingSync = ref(0); // Tambahan: Menghitung yang belum sync
+const pendingSync = ref(0);
 const isLoading = ref(false);
 
 const loadData = async () => {
     isLoading.value = true;
     try {
-        // Jalankan Sync Penuh (Push + Pull)
-        // Kita gunakan navigator.onLine untuk cek internet
         if (navigator.onLine) {
-            await memberService.syncNow();
+            const result = await memberService.syncNow();
+            toast.success('Sinkronisasi selesai', {
+                description: `${result.pushed} data dikirim, ${result.pulled} data diterima.`
+            });
         } else {
-            console.log("Mode Offline: Hanya memuat data lokal.");
+            toast.warning('Mode Offline', {
+                description: 'Menampilkan data lokal saja.'
+            });
         }
 
-        // Refresh angka-angka tampilan
         await refreshCounts();
         
     } catch (e) {
         console.error("Sync error:", e);
-        alert("Gagal sinkronisasi. Cek koneksi internet.");
+        toast.error('Gagal Sinkronisasi', {
+            description: 'Cek koneksi internet Anda.'
+        });
     } finally {
         isLoading.value = false;
     }
 };
 
-// Fungsi helper untuk menghitung ulang angka dashboard
 const refreshCounts = async () => {
     totalMembers.value = await memberService.countLocalMembers();
-    // Hitung berapa yang belum sync
     pendingSync.value = await memberService.countPendingMembers();
 };
 
 onMounted(() => {
-    refreshCounts(); // Tampilkan angka dulu biar cepat
-    loadData();      // Lalu coba sync background
+    refreshCounts();
+    loadData();
 });
 </script>
