@@ -2,12 +2,14 @@
   <div class="p-8">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold tracking-tight">Kelola Admin</h1>
-      <Button @click="$router.push('/admins/create')" class="bg-slate-900 hover:bg-slate-800">
-        + Tambah Admin
-      </Button>
-      <Button @click="loadUsers" variant="outline" :disabled="isLoading">
-            {{ isLoading ? 'Sedang Sinkronisasi...' : 'Refresh Data' }}
+      <div class="flex items-center gap-3">
+        <Button @click="loadUsers" variant="outline" :disabled="isLoading">
+            {{ isLoading ? 'Memuat...' : 'Refresh Data' }}
         </Button>
+        <Button @click="handleCreate" class="bg-slate-900 hover:bg-slate-800">
+          + Tambah Admin
+        </Button>
+      </div>
     </div>
 
     <Card>
@@ -28,10 +30,9 @@
                     <TableCell class="uppercase text-xs font-bold">{{ user.role }}</TableCell>
                     <TableCell>
                         <div class="flex gap-2">
-                            <Button variant="outline" size="sm" @click="$router.push(`/admins/${user.id}/edit`)">
+                            <Button variant="outline" size="sm" @click="handleEdit(user.id)">
                                 Edit
                             </Button>
-                            
                             <Button variant="destructive" size="sm" @click="confirmDelete(user.id)">
                                 Hapus
                             </Button>
@@ -65,52 +66,84 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-// Import Komponen Dialog
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'vue-sonner';
 
+const router = useRouter();
 const users = ref([]);
-
-// State untuk Dialog
+const isLoading = ref(false);
 const isDialogOpen = ref(false);
-const deleteId = ref(null); // Menyimpan ID sementara yang mau dihapus
+const deleteId = ref(null);
+
+// Cek koneksi sebelum navigasi
+const checkOnlineBeforeAction = (action) => {
+    if (!navigator.onLine) {
+        toast.warning('Koneksi Diperlukan', {
+            description: 'Fitur admin membutuhkan koneksi internet yang stabil.'
+        });
+        return false;
+    }
+    return true;
+};
+
+const handleCreate = () => {
+    if (checkOnlineBeforeAction()) {
+        router.push('/admins/create');
+    }
+};
+
+const handleEdit = (id) => {
+    if (checkOnlineBeforeAction()) {
+        router.push(`/admins/${id}/edit`);
+    }
+};
 
 const loadUsers = async () => {
+    if (!navigator.onLine) {
+        toast.warning('Koneksi Diperlukan', {
+            description: 'Halaman admin membutuhkan koneksi internet untuk mengambil data terbaru.'
+        });
+        return;
+    }
+
+    isLoading.value = true;
     try {
         const response = await api.get('/users');
         users.value = response.data;
+        toast.success('Data admin berhasil dimuat.');
     } catch (e) {
         console.error(e);
+        toast.error('Gagal Memuat Data', {
+            description: 'Pastikan koneksi internet stabil.'
+        });
+    } finally {
+        isLoading.value = false;
     }
-};12
+};
 
-// 1. Saat tombol Hapus diklik -> Buka Dialog & Simpan ID
 const confirmDelete = (id) => {
+    if (!checkOnlineBeforeAction()) return;
     deleteId.value = id;
     isDialogOpen.value = true;
 };
 
-// 2. Saat tombol "Ya, Hapus" di Dialog diklik -> Eksekusi ke API
 const executeDelete = async () => {
     try {
         await api.delete(`/users/${deleteId.value}`);
         isDialogOpen.value = false;
-        loadUsers(); 
-
-        // Notifikasi Sukses Sonner
+        loadUsers();
         toast.success('Terhapus', {
             description: 'Data admin berhasil dihapus dari sistem.'
         });
-
     } catch (e) {
-        // Notifikasi Gagal Sonner
         toast.error('Gagal', {
             description: 'Tidak dapat menghapus data admin.'
         });
