@@ -119,6 +119,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'vue-sonner';
 import { DatePicker } from '@/components/ui/date-picker';
+import imageCompression from 'browser-image-compression';
 
 const route = useRoute();
 const router = useRouter();
@@ -160,15 +161,25 @@ onMounted(async () => {
     }
 });
 
-const handleFileUpload = (event) => {
+const handleFileUpload = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-        if (file.size > 2 * 1024 * 1024) {
-            toast.error('Ukuran file terlalu besar', { description: 'Maksimal 2MB' });
-            return;
-        }
-        form.photo = file;
-        previewPhoto.value = URL.createObjectURL(file);
+    if (!file) return;
+    
+    try {
+        // Compress image dulu
+        const compressedFile = await imageCompression(file, {
+            maxSizeMB: 1, // Max 1MB
+            maxWidthOrHeight: 1000, // Max dimension
+            useWebWorker: true
+        });
+        
+        // Baru convert ke Base64
+        const base64 = await memberService.fileToBase64(compressedFile);
+        form.photo = base64;
+        previewPhoto.value = base64;
+        
+    } catch (error) {
+        toast.error('Gagal memproses foto');
     }
 };
 

@@ -88,6 +88,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Image as ImageIcon, Upload as UploadIcon } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import { DatePicker } from '@/components/ui/date-picker';
+import imageCompression from 'browser-image-compression';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -109,15 +110,24 @@ const form = reactive({
     valid_until: getDefaultValidUntil()
 });
 
-const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        if (file.size > 2 * 1024 * 1024) {
-            toast.error('Ukuran file terlalu besar', { description: 'Maksimal 2MB' });
-            return;
-        }
-        form.photo = file;
-        previewPhoto.value = URL.createObjectURL(file);
+const handleFileUpload = async (event) => {
+    if (!file) return;
+    
+    try {
+        // Compress image dulu
+        const compressedFile = await imageCompression(file, {
+            maxSizeMB: 1, // Max 1MB
+            maxWidthOrHeight: 1000, // Max dimension
+            useWebWorker: true
+        });
+        
+        // Baru convert ke Base64
+        const base64 = await memberService.fileToBase64(compressedFile);
+        form.photo = base64;
+        previewPhoto.value = base64;
+        
+    } catch (error) {
+        toast.error('Gagal memproses foto');
     }
 };
 
