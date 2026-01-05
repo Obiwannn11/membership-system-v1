@@ -74,10 +74,12 @@ export const memberService = {
                     sync_action: member.sync_action
                 };
 
-                // Handle foto - jika ada File object, convert ke base64 untuk sync
-                if (member.photo instanceof File) {
-                    memberData.photo = await this.fileToBase64(member.photo);
-                } else {
+                // Pastikan photo dikirim (Base64 string dari Dexie)
+                // Tidak perlu cek instanceof File lagi karena di Dexie sudah pasti string Base64
+                if (member.photo && member.photo.startsWith('data:')) {
+                    memberData.photo = member.photo; 
+                } else if (member.photo && !member.photo.startsWith('http')) {
+                    // Jaga-jaga jika formatnya lain tapi bukan URL
                     memberData.photo = member.photo;
                 }
 
@@ -221,6 +223,12 @@ export const memberService = {
         if (photo instanceof File) return URL.createObjectURL(photo);
         if (photo.startsWith('data:')) return photo; // Base64
         if (photo.startsWith('http')) return photo; // Full URL
-        return `/storage/${photo}`; // Laravel storage path
+
+        // Pastikan tidak double slash jika photo sudah ada '/' di depan
+        const cleanPath = photo.startsWith('/') ? photo.substring(1) : photo;
+        
+        // Asumsi Anda mengakses via localhost:8000/storage/
+        // Sesuaikan base URL ini dengan environment Anda
+        return `/storage/${cleanPath}`; // Laravel storage path
     }
 };
