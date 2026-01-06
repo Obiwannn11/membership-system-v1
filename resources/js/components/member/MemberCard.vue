@@ -65,21 +65,22 @@
       <a 
         :href="`https://wa.me/${formatPhone(member.phone)}?text=Halo ${member.name}, membership Anda...`" 
         target="_blank"
-        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-green-600 bg-green-50 hover:bg-green-100"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-green-600 bg-green-50 hover:bg-green-100"
+        title="Hubungi via WhatsApp"
         @click.stop
       >
         <MessageCircleIcon class="w-4 h-4" />
-        <span class="hidden sm:inline">WA</span>
+        <span>WhatsApp</span>
       </a>
 
       <!-- Edit -->
       <button 
-        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-gray-600 bg-gray-50 hover:bg-gray-100"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-gray-600 bg-gray-50 hover:bg-gray-100"
         title="Edit data Member"
         @click.stop="$emit('edit', member)"
       >
         <PencilIcon class="w-4 h-4" />
-        <span class="hidden sm:inline">Edit</span>
+        <span>Edit</span>
       </button>
     </div>
   </div>
