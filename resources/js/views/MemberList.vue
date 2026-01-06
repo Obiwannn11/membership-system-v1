@@ -133,7 +133,7 @@
                   <div class="flex items-center justify-center gap-0.5 sm:gap-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" class="h-7 w-7 sm:h-8 sm:w-8" @click="openPreview(member)">
+                        <Button variant="ghost" size="icon" class="h-7 w-7 sm:h-8 sm:w-8" title="Lihat Detail" @click="openPreview(member)">
                           <EyeIcon class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </Button>
                       </TooltipTrigger>
@@ -146,6 +146,7 @@
                           :href="`https://wa.me/${formatPhone(member.phone)}?text=Halo ${member.name}, membership Anda...`" 
                           target="_blank"
                           class="inline-flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-md text-green-600 hover:bg-green-50"
+                            title="Hubungi via WhatsApp"
                         >
                           <MessageCircleIcon class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </a>
@@ -155,7 +156,7 @@
 
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" class="h-7 w-7 sm:h-8 sm:w-8" @click="$router.push(`/members/${member.id}/edit`)">
+                        <Button variant="ghost" size="icon" class="h-7 w-7 sm:h-8 sm:w-8" title="Edit Data" @click="$router.push(`/members/${member.id}/edit`)">
                           <PencilIcon class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </Button>
                       </TooltipTrigger>
