@@ -51,9 +51,12 @@
             </TableHeader>
             <TableBody>
               <TableRow v-for="member in paginatedMembers" :key="member.id" class="align-middle">
-                <!-- Foto - Larger Avatar -->
+                <!-- Foto - Larger Avatar (Clickable for fullscreen) -->
                 <TableCell class="py-3">
-                  <div class="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+                  <div 
+                    class="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-primary/50"
+                    @click="openPhotoViewer(member)"
+                  >
                     <img 
                       v-if="member.photo" 
                       :src="getPhotoUrl(member.photo)" 
@@ -201,6 +204,47 @@
       </CardContent>
     </Card>
 
+    <!-- Fullscreen Photo Viewer -->
+    <Dialog :open="isPhotoViewerOpen" @update:open="isPhotoViewerOpen = $event">
+      <DialogContent class="max-w-[95vw] max-h-[95vh] p-0 border-0 bg-transparent shadow-none">
+        <div 
+          class="relative w-full h-full flex items-center justify-center"
+          @click="isPhotoViewerOpen = false"
+        >
+          <!-- Close Button -->
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            class="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white"
+            @click="isPhotoViewerOpen = false"
+          >
+            <XIcon class="w-6 h-6" />
+          </Button>
+
+          <!-- Photo -->
+          <div class="max-w-[90vw] max-h-[90vh] overflow-hidden rounded-lg">
+            <img 
+              v-if="viewerPhoto" 
+              :src="getPhotoUrl(viewerPhoto)" 
+              class="max-w-full max-h-[90vh] object-contain"
+              :alt="viewerName"
+              @click.stop
+            />
+            <div v-else class="w-64 h-64 bg-slate-800 rounded-lg flex items-center justify-center">
+              <span class="text-8xl font-bold text-slate-500">
+                {{ viewerName?.charAt(0)?.toUpperCase() || '?' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Name Label -->
+          <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 px-6 py-2 rounded-full">
+            <span class="text-white font-medium">{{ viewerName }}</span>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
     <!-- Preview Dialog -->
     <Dialog :open="isPreviewOpen" @update:open="isPreviewOpen = $event">
       <DialogContent class="sm:max-w-lg">
@@ -293,7 +337,8 @@ import {
   ChevronRight as ChevronRightIcon,
   Phone as PhoneIcon,
   MapPin as MapPinIcon,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  X as XIcon
 } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
@@ -418,6 +463,17 @@ const previewMember = ref(null);
 const openPreview = (member) => {
   previewMember.value = member;
   isPreviewOpen.value = true;
+};
+
+// Fullscreen Photo Viewer
+const isPhotoViewerOpen = ref(false);
+const viewerPhoto = ref(null);
+const viewerName = ref('');
+
+const openPhotoViewer = (member) => {
+  viewerPhoto.value = member.photo;
+  viewerName.value = member.name;
+  isPhotoViewerOpen.value = true;
 };
 
 // ========== COMPUTED: FILTER & PAGINATION ==========
