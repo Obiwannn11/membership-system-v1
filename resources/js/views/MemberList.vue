@@ -1,43 +1,63 @@
 <template>
-  <div class="p-4 sm:p-8">
-    <!-- Header - Responsive -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
-      <h1 class="text-2xl sm:text-3xl font-bold">Daftar Anggota</h1>
-      <div class="flex flex-wrap items-center gap-2 sm:gap-4">
-        <!-- View Mode Toggle -->
-        <div class="flex rounded-lg border overflow-hidden">
-          <button 
-            :class="[
-              'px-3 py-2 flex items-center gap-1 text-sm transition-colors',
-              viewMode === 'table' ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'
-            ]"
-            @click="viewMode = 'table'"
-          >
-            <TableIcon class="w-4 h-4" />
-            <span class="hidden sm:inline">Table</span>
-          </button>
-          <button 
-            :class="[
-              'px-3 py-2 flex items-center gap-1 text-sm transition-colors',
-              viewMode === 'card' ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'
-            ]"
-            @click="viewMode = 'card'"
-          >
-            <LayoutGridIcon class="w-4 h-4" />
-            <span class="hidden sm:inline">Card</span>
-          </button>
+   <div class="p-4 sm:p-8">
+        <!-- Header - Responsive dengan buttons di kanan -->
+        <div class="flex flex-col gap-4 mb-6">
+          <!-- Row 1: Title -->
+          <h1 class="text-2xl sm:text-3xl font-bold">Daftar Anggota</h1>
+        
+          <!-- Row 2: Action Buttons (selalu di kanan) -->
+          <div class="flex items-center justify-end gap-2">
+            <!-- View Mode Toggle dengan Tooltip -->
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div class="flex rounded-lg border overflow-hidden">
+                  <button 
+                    :class="[
+                      'px-3 py-2 flex items-center gap-1 text-sm transition-colors',
+                      viewMode === 'table' ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'
+                    ]"
+                    title="Tampilan Tabel"
+                    @click="viewMode = 'table'"
+                  >
+                    <TableIcon class="w-4 h-4" />
+                  </button>
+                  <button 
+                    :class="[
+                      'px-3 py-2 flex items-center gap-1 text-sm transition-colors',
+                      viewMode === 'card' ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'
+                    ]"
+                    title="Tampilan Kartu"
+                    @click="viewMode = 'card'"
+                  >
+                    <LayoutGridIcon class="w-4 h-4" />
+                  </button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Ubah Tampilan</TooltipContent>
+            </Tooltip>
+        
+            <!-- Refresh dengan Tooltip -->
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button @click="loadMembers" variant="outline" size="icon" title="Refresh Data" :disabled="isLoading">
+                  <RefreshCwIcon :class="['w-4 h-4', isLoading ? 'animate-spin' : '']" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{{ isLoading ? 'Memuat...' : 'Refresh Data' }}</TooltipContent>
+            </Tooltip>
+        
+            <!-- Tambah Member dengan Tooltip -->
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon" title="Tambah Member Baru" @click="$router.push('/members/create')">
+                  <PlusIcon class="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Tambah Member Baru</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
-        <Button @click="loadMembers" variant="outline" size="sm" :disabled="isLoading">
-          <RefreshCwIcon class="w-4 h-4 sm:mr-1" />
-          <span class="hidden sm:inline">{{ isLoading ? 'Memuat...' : 'Refresh' }}</span>
-        </Button>
-        <Button size="sm" @click="$router.push('/members/create')">
-          <PlusIcon class="w-4 h-4 sm:mr-1" />
-          <span class="hidden sm:inline">Tambah Member</span>
-        </Button>
-      </div>
-    </div>
 
     <Card>
       <CardHeader class="pb-4">
