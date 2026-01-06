@@ -46,8 +46,21 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end">
-                    <Button type="submit" :disabled="isLoading">
+                <div class="pt-6 border-t flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        class="w-full sm:w-auto"
+                        @click="$router.back()"
+                    >
+                        <ArrowLeftIcon class="w-4 h-4 mr-2" />
+                        Kembali
+                    </Button>
+                    <Button 
+                        type="submit" 
+                        class="w-full sm:w-auto"
+                        :disabled="isLoading"
+                    >
                         {{ isLoading ? 'Menyimpan...' : 'Simpan Perubahan' }}
                     </Button>
                 </div>
@@ -65,6 +78,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { toast } from 'vue-sonner';
+import { ArrowLeftIcon } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
 const isLoading = ref(false);
@@ -90,19 +105,19 @@ const userInitials = computed(() => {
 
 const handleUpdate = async () => {
     if (form.password && form.password !== form.password_confirmation) {
-        alert('Konfirmasi password tidak cocok!');
+        toast.error('Konfirmasi password tidak cocok!');
         return;
     }
 
     isLoading.value = true;
     try {
         await authStore.updateProfile(form);
-        alert('Profil berhasil diperbarui!');
+        toast.success('Profil berhasil diperbarui!');
         // Reset field password
         form.password = '';
         form.password_confirmation = '';
     } catch (error) {
-        alert('Gagal update profile. Cek koneksi atau email sudah dipakai.');
+        toast.error('Gagal update profile. Cek koneksi atau email sudah dipakai.');
     } finally {
         isLoading.value = false;
     }
