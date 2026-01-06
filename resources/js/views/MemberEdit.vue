@@ -61,17 +61,52 @@
                 <p class="text-xs text-gray-400">Tanggal berakhir membership</p>
               </div>
 
-              <div class="flex justify-between items-center gap-4 pt-4 border-t">
-                <Button type="button" variant="destructive" @click="confirmDelete">
-                  <Trash2Icon class="w-4 h-4 mr-2" />
-                  Hapus Member
-                </Button>
-                
-                <div class="flex gap-3">
-                  <Button type="button" variant="outline" @click="$router.back()">Batal</Button>
-                  <Button type="submit" :disabled="isSaving">
+              <!-- Ganti bagian button footer di dalam CardContent -->
+
+              <!-- Actions Footer - Improved Layout -->
+              <div class="space-y-4 pt-6 border-t">
+                <!-- Primary Actions: Save & Cancel -->
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    class="w-full sm:w-auto"
+                    title="Kembali ke daftar member"
+                    @click="$router.back()"
+                  >
+                    <ArrowLeftIcon class="w-4 h-4 mr-2" />
+                    Kembali
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    class="w-full sm:w-auto" 
+                    title="Simpan perubahan data"
+                    :disabled="isSaving"
+                  >
+                    <SaveIcon class="w-4 h-4 mr-2" />
                     {{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}
                   </Button>
+                </div>
+                
+                <!-- Danger Zone: Delete (Separated) -->
+                <div class="pt-4 border-t border-dashed border-red-200 bg-red-50/50 -mx-6 px-6 pb-0 -mb-6 rounded-b-lg">
+                  <div class="flex items-center justify-between py-3">
+                    <div class="text-sm">
+                      <p class="font-medium text-red-800">Zona Berbahaya</p>
+                      <p class="text-red-600 text-xs">Hapus member ini secara permanen</p>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      size="sm"
+                      class="border-red-300 text-red-600 hover:bg-red-100 hover:text-red-700"
+                      title="Hapus member ini"
+                      @click="confirmDelete"
+                    >
+                      <Trash2Icon class="w-4 h-4 sm:mr-2" />
+                      <span class="hidden sm:inline">Hapus</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -112,7 +147,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Image as ImageIcon, Upload as UploadIcon, Trash2 as Trash2Icon } from 'lucide-vue-next';
+import { Image as ImageIcon, Upload as UploadIcon, Trash2 as Trash2Icon, ArrowLeft as ArrowLeftIcon, Save as SaveIcon } from 'lucide-vue-next';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
