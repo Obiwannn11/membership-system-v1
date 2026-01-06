@@ -75,6 +75,7 @@
       <!-- Edit -->
       <button 
         class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-gray-600 bg-gray-50 hover:bg-gray-100"
+        title="Edit data Member"
         @click.stop="$emit('edit', member)"
       >
         <PencilIcon class="w-4 h-4" />
