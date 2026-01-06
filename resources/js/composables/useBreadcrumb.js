@@ -74,10 +74,19 @@ export function useBreadcrumb() {
     return '/';
   });
 
+  const parentLabel = computed(() => {
+    if (breadcrumbs.value.length > 1) {
+      return breadcrumbs.value[breadcrumbs.value.length - 2].label;
+    }
+    return 'Back';
+  });
+
+
   return {
     breadcrumbs,
     currentPage,
     canGoBack,
-    parentPath
+    parentPath,
+    parentLabel,
   };
 }
