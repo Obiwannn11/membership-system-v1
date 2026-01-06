@@ -1,23 +1,50 @@
 <template>
-  <div class="p-8">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold">Daftar Anggota</h1>
-      <div class="flex items-center gap-4">
-        <Button @click="loadMembers" variant="outline" :disabled="isLoading">
-          {{ isLoading ? 'Memuat...' : 'Refresh' }}
+  <div class="p-4 sm:p-8">
+    <!-- Header - Responsive -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold">Daftar Anggota</h1>
+      <div class="flex flex-wrap items-center gap-2 sm:gap-4">
+        <!-- View Mode Toggle -->
+        <div class="flex rounded-lg border overflow-hidden">
+          <button 
+            :class="[
+              'px-3 py-2 flex items-center gap-1 text-sm transition-colors',
+              viewMode === 'table' ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'
+            ]"
+            @click="viewMode = 'table'"
+          >
+            <TableIcon class="w-4 h-4" />
+            <span class="hidden sm:inline">Table</span>
+          </button>
+          <button 
+            :class="[
+              'px-3 py-2 flex items-center gap-1 text-sm transition-colors',
+              viewMode === 'card' ? 'bg-primary text-white' : 'bg-white hover:bg-gray-50'
+            ]"
+            @click="viewMode = 'card'"
+          >
+            <LayoutGridIcon class="w-4 h-4" />
+            <span class="hidden sm:inline">Card</span>
+          </button>
+        </div>
+
+        <Button @click="loadMembers" variant="outline" size="sm" :disabled="isLoading">
+          <RefreshCwIcon class="w-4 h-4 sm:mr-1" />
+          <span class="hidden sm:inline">{{ isLoading ? 'Memuat...' : 'Refresh' }}</span>
         </Button>
-        <Button @click="$router.push('/members/create')">
-          + Tambah Member
+        <Button size="sm" @click="$router.push('/members/create')">
+          <PlusIcon class="w-4 h-4 sm:mr-1" />
+          <span class="hidden sm:inline">Tambah Member</span>
         </Button>
       </div>
     </div>
 
     <Card>
-      <CardHeader>
-        <div class="flex justify-between items-center">
-          <CardTitle>Total: {{ filteredMembers.length }} Anggota</CardTitle>
+      <CardHeader class="pb-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+          <CardTitle class="text-lg">Total: {{ filteredMembers.length }} Anggota</CardTitle>
           <!-- Search -->
-          <div class="relative w-64">
+          <div class="relative w-full sm:w-64">
             <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input 
               v-model="searchQuery" 
@@ -28,14 +55,15 @@
         </div>
       </CardHeader>
       <CardContent>
-        <div class="overflow-x-auto">
+        <!-- TABLE VIEW -->
+        <div v-if="viewMode === 'table'" class="overflow-x-auto -mx-6 px-6">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead class="w-24">Foto</TableHead>
                 <TableHead>Nama</TableHead>
-                <TableHead>No HP</TableHead>
-                <TableHead class="text-center">Status & Berlaku</TableHead>
+                <TableHead class="hidden sm:table-cell">No HP</TableHead>
+                <TableHead class="text-center">Status</TableHead>
                 <TableHead class="text-center w-24">Aksi</TableHead>
                 <TableHead class="w-12 text-center">
                   <Tooltip>
@@ -51,10 +79,10 @@
             </TableHeader>
             <TableBody>
               <TableRow v-for="member in paginatedMembers" :key="member.id" class="align-middle">
-                <!-- Foto - Larger Avatar (Clickable for fullscreen) -->
+                <!-- Foto -->
                 <TableCell class="py-3">
                   <div 
-                    class="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-primary/50"
+                    class="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 hover:ring-2 hover:ring-primary/50"
                     @click="openPhotoViewer(member)"
                   >
                     <img 
@@ -63,7 +91,7 @@
                       class="w-full h-full object-cover" 
                       :alt="member.name"
                     />
-                    <span v-else class="text-xl font-semibold text-slate-400">
+                    <span v-else class="text-lg sm:text-xl font-semibold text-slate-400">
                       {{ member.name.charAt(0).toUpperCase() }}
                     </span>
                   </div>
@@ -71,11 +99,13 @@
 
                 <!-- Nama -->
                 <TableCell class="font-medium">
-                  {{ member.name }}
+                  <div>{{ member.name }}</div>
+                  <!-- Show phone on mobile under name -->
+                  <div class="text-xs text-gray-500 font-mono sm:hidden">{{ maskPhone(member.phone) }}</div>
                 </TableCell>
 
-                <!-- No HP - Masked with Tooltip -->
-                <TableCell class="font-mono text-sm">
+                <!-- No HP - Hidden on mobile -->
+                <TableCell class="font-mono text-sm hidden sm:table-cell">
                   <Tooltip>
                     <TooltipTrigger class="cursor-help underline decoration-dotted underline-offset-2">
                       {{ maskPhone(member.phone) }}
@@ -86,13 +116,13 @@
                   </Tooltip>
                 </TableCell>
 
-                <!-- Status & Countdown Combined -->
+                <!-- Status & Countdown -->
                 <TableCell>
                   <div class="flex flex-col gap-1 items-center">
-                    <span :class="getStatusBadgeClass(getMembershipStatus(member.valid_until))" class="w-fit">
+                    <span :class="getStatusBadgeClass(getMembershipStatus(member.valid_until))" class="w-fit text-[10px] sm:text-xs">
                       {{ getStatusLabel(getMembershipStatus(member.valid_until)) }}
                     </span>
-                    <span :class="getCountdownClass(member.valid_until)" class="text-xs font-medium">
+                    <span :class="getCountdownClass(member.valid_until)" class="text-[10px] sm:text-xs font-medium">
                       {{ getCountdownText(member.valid_until) }}
                     </span>
                   </div>
@@ -100,36 +130,33 @@
 
                 <!-- Aksi -->
                 <TableCell>
-                  <div class="flex items-center justify-center gap-1">
-                    <!-- Preview -->
+                  <div class="flex items-center justify-center gap-0.5 sm:gap-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" class="h-8 w-8" @click="openPreview(member)">
-                          <EyeIcon class="w-4 h-4" />
+                        <Button variant="ghost" size="icon" class="h-7 w-7 sm:h-8 sm:w-8" @click="openPreview(member)">
+                          <EyeIcon class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Lihat Detail</TooltipContent>
                     </Tooltip>
 
-                    <!-- WhatsApp -->
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <a 
                           :href="`https://wa.me/${formatPhone(member.phone)}?text=Halo ${member.name}, membership Anda...`" 
                           target="_blank"
-                          class="inline-flex items-center justify-center h-8 w-8 rounded-md text-green-600 hover:bg-green-50"
+                          class="inline-flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-md text-green-600 hover:bg-green-50"
                         >
-                          <MessageCircleIcon class="w-4 h-4" />
+                          <MessageCircleIcon class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </a>
                       </TooltipTrigger>
                       <TooltipContent>Hubungi via WA</TooltipContent>
                     </Tooltip>
 
-                    <!-- Edit -->
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" class="h-8 w-8" @click="$router.push(`/members/${member.id}/edit`)">
-                          <PencilIcon class="w-4 h-4" />
+                        <Button variant="ghost" size="icon" class="h-7 w-7 sm:h-8 sm:w-8" @click="$router.push(`/members/${member.id}/edit`)">
+                          <PencilIcon class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Edit Data</TooltipContent>
@@ -137,15 +164,15 @@
                   </div>
                 </TableCell>
 
-                <!-- Sync Status - Icon Only -->
+                <!-- Sync Status -->
                 <TableCell class="text-center">
                   <Tooltip>
                     <TooltipTrigger>
-                      <div v-if="member.is_synced" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
-                        <CheckCircleIcon class="w-4 h-4 text-green-600" />
+                      <div v-if="member.is_synced" class="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-100">
+                        <CheckCircleIcon class="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
                       </div>
-                      <div v-else class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100">
-                        <ClockIcon class="w-4 h-4 text-yellow-600" />
+                      <div v-else class="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-yellow-100">
+                        <ClockIcon class="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -164,7 +191,27 @@
           </Table>
         </div>
 
-        <!-- Pagination -->
+        <!-- CARD VIEW -->
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          <MemberCard 
+            v-for="member in paginatedMembers" 
+            :key="member.id"
+            :member="member"
+            @preview="openPreview"
+            @edit="(m) => $router.push(`/members/${m.id}/edit`)"
+            @view-photo="openPhotoViewer"
+          />
+
+          <!-- Empty State -->
+          <div 
+            v-if="paginatedMembers.length === 0" 
+            class="col-span-full text-center py-12 text-gray-500"
+          >
+            {{ searchQuery ? 'Tidak ada hasil pencarian' : 'Belum ada data member' }}
+          </div>
+        </div>
+
+        <!-- Pagination - Responsive -->
         <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 mt-6 pt-4 border-t">
           <Button 
             variant="outline" 
@@ -172,11 +219,12 @@
             :disabled="currentPage === 1"
             @click="currentPage--"
           >
-            <ChevronLeftIcon class="w-4 h-4 mr-1" />
-            Prev
+            <ChevronLeftIcon class="w-4 h-4" />
+            <span class="hidden sm:inline ml-1">Prev</span>
           </Button>
           
-          <div class="flex gap-1">
+          <!-- Page numbers - Hidden on mobile -->
+          <div class="hidden sm:flex gap-1">
             <template v-for="(page, index) in paginationItems" :key="index">
               <span v-if="page === '...'" class="px-2 py-1 text-gray-400">...</span>
               <Button 
@@ -191,14 +239,19 @@
             </template>
           </div>
 
+          <!-- Page indicator - Mobile only -->
+          <span class="sm:hidden text-sm text-gray-500">
+            {{ currentPage }} / {{ totalPages }}
+          </span>
+
           <Button 
             variant="outline" 
             size="sm" 
             :disabled="currentPage === totalPages"
             @click="currentPage++"
           >
-            Next
-            <ChevronRightIcon class="w-4 h-4 ml-1" />
+            <span class="hidden sm:inline mr-1">Next</span>
+            <ChevronRightIcon class="w-4 h-4" />
           </Button>
         </div>
       </CardContent>
@@ -211,7 +264,6 @@
           class="relative w-full h-full flex items-center justify-center"
           @click="isPhotoViewerOpen = false"
         >
-          <!-- Close Button -->
           <Button 
             variant="ghost" 
             size="icon" 
@@ -221,7 +273,6 @@
             <XIcon class="w-6 h-6" />
           </Button>
 
-          <!-- Photo -->
           <div class="max-w-[90vw] max-h-[90vh] overflow-hidden rounded-lg">
             <img 
               v-if="viewerPhoto" 
@@ -237,7 +288,6 @@
             </div>
           </div>
 
-          <!-- Name Label -->
           <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 px-6 py-2 rounded-full">
             <span class="text-white font-medium">{{ viewerName }}</span>
           </div>
@@ -247,33 +297,33 @@
 
     <!-- Preview Dialog -->
     <Dialog :open="isPreviewOpen" @update:open="isPreviewOpen = $event">
-      <DialogContent class="sm:max-w-lg">
+      <DialogContent class="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Detail Member</DialogTitle>
         </DialogHeader>
         
-        <div v-if="previewMember" class="grid grid-cols-3 gap-6">
+        <div v-if="previewMember" class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           <!-- Photo -->
-          <div class="col-span-1">
-            <div class="w-full aspect-square rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+          <div class="sm:col-span-1 flex justify-center sm:block">
+            <div class="w-24 h-24 sm:w-full sm:aspect-square rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
               <img 
                 v-if="previewMember.photo" 
                 :src="getPhotoUrl(previewMember.photo)" 
                 class="w-full h-full object-cover" 
                 :alt="previewMember.name"
               />
-              <span v-else class="text-4xl font-bold text-slate-300">
+              <span v-else class="text-3xl sm:text-4xl font-bold text-slate-300">
                 {{ previewMember.name.charAt(0).toUpperCase() }}
               </span>
             </div>
           </div>
 
           <!-- Info -->
-          <div class="col-span-2 space-y-4">
-            <div>
-              <h3 class="text-2xl font-bold">{{ previewMember.name }}</h3>
-              <div class="flex flex-col gap-1 mt-2 items-start">
-                <span :class="getStatusBadgeClass(getMembershipStatus(previewMember.valid_until))" class="w-fit" >
+          <div class="sm:col-span-2 space-y-4">
+            <div class="text-center sm:text-left">
+              <h3 class="text-xl sm:text-2xl font-bold">{{ previewMember.name }}</h3>
+              <div class="flex flex-wrap justify-center sm:justify-start gap-2 mt-2">
+                <span :class="getStatusBadgeClass(getMembershipStatus(previewMember.valid_until))">
                   {{ getStatusLabel(getMembershipStatus(previewMember.valid_until)) }}
                 </span>
                 <span :class="getCountdownClass(previewMember.valid_until)" class="text-sm font-medium">
@@ -299,13 +349,14 @@
           </div>
         </div>
 
-        <DialogFooter class="mt-4">
-          <Button variant="outline" @click="isPreviewOpen = false">Tutup</Button>
+        <DialogFooter class="mt-4 flex-col sm:flex-row gap-2">
+          <Button variant="outline" class="w-full sm:w-auto" @click="isPreviewOpen = false">Tutup</Button>
           <a 
             :href="`https://wa.me/${formatPhone(previewMember?.phone)}?text=Halo ${previewMember?.name}, membership Anda...`" 
             target="_blank"
+            class="w-full sm:w-auto"
           >
-            <Button class="bg-green-600 hover:bg-green-700">
+            <Button class="w-full bg-green-600 hover:bg-green-700">
               <MessageCircleIcon class="w-4 h-4 mr-2" />
               Hubungi via WA
             </Button>
@@ -319,6 +370,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { memberService } from '@/services/memberService';
+import { useMemberStatus } from '@/composables/useMemberStatus';
+import MemberCard from '@/components/member/MemberCard.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -338,116 +391,28 @@ import {
   Phone as PhoneIcon,
   MapPin as MapPinIcon,
   Calendar as CalendarIcon,
-  X as XIcon
+  X as XIcon,
+  Table2 as TableIcon,
+  LayoutGrid as LayoutGridIcon,
+  RefreshCw as RefreshCwIcon,
+  Plus as PlusIcon
 } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
+// ========== COMPOSABLE ==========
+const {
+  formatDate,
+  formatPhone,
+  maskPhone,
+  getMembershipStatus,
+  getStatusLabel,
+  getStatusBadgeClass,
+  getCountdownText,
+  getCountdownClass
+} = useMemberStatus();
+
 // ========== HELPERS ==========
 const getPhotoUrl = (photo) => memberService.getPhotoUrl(photo);
-
-const formatPhone = (phone) => {
-  if (!phone) return '';
-  let p = phone.replace(/[^0-9]/g, '');
-  if (p.startsWith('08')) {
-    p = '62' + p.substring(1);
-  }
-  return p;
-};
-
-const maskPhone = (phone) => {
-  if (!phone) return '-';
-  const cleaned = phone.replace(/[^0-9]/g, '');
-  if (cleaned.length <= 4) return cleaned;
-  const lastFour = cleaned.slice(-4);
-  const maskedPart = '*'.repeat(cleaned.length - 4);
-  return maskedPart + lastFour;
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('id-ID', { 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric',
-    timeZone: 'Asia/Makassar'
-  });
-};
-
-// Get membership status based on valid_until date (Makassar timezone)
-const getMembershipStatus = (validUntil) => {
-  if (!validUntil) return 'inactive';
-  
-  const now = new Date();
-  const validDate = new Date(validUntil);
-  const oneWeekAfter = new Date(validDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-  
-  // Set to Makassar timezone comparison
-  const nowMakassar = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Makassar' }));
-  const validMakassar = new Date(validDate.toLocaleString('en-US', { timeZone: 'Asia/Makassar' }));
-  const oneWeekMakassar = new Date(oneWeekAfter.toLocaleString('en-US', { timeZone: 'Asia/Makassar' }));
-  
-  if (nowMakassar <= validMakassar) {
-    return 'active';
-  } else if (nowMakassar <= oneWeekMakassar) {
-    return 'expired';
-  } else {
-    return 'inactive';
-  }
-};
-
-const getStatusLabel = (status) => {
-  const labels = {
-    active: 'Aktif',
-    expired: 'Expired',
-    inactive: 'Tidak Aktif'
-  };
-  return labels[status] || '-';
-};
-
-const getStatusBadgeClass = (status) => {
-  const classes = {
-    active: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800',
-    expired: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800',
-    inactive: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800'
-  };
-  return classes[status] || classes.inactive;
-};
-
-// ========== COUNTDOWN HELPERS ==========
-const getDaysRemaining = (validUntil) => {
-  if (!validUntil) return null;
-  
-  const now = new Date();
-  const validDate = new Date(validUntil);
-  
-  // Reset ke awal hari untuk perbandingan yang akurat
-  now.setHours(0, 0, 0, 0);
-  validDate.setHours(0, 0, 0, 0);
-  
-  const diffTime = validDate.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return diffDays;
-};
-
-const getCountdownText = (validUntil) => {
-  const days = getDaysRemaining(validUntil);
-  
-  if (days === null) return '-';
-  if (days > 0) return `${days} hari lagi`;
-  if (days === 0) return 'Hari ini';
-  return `Lewat ${Math.abs(days)} hari`;
-};
-
-const getCountdownClass = (validUntil) => {
-  const days = getDaysRemaining(validUntil);
-  
-  if (days === null) return 'text-gray-400';
-  if (days > 7) return 'text-green-600 '; // Masih aman
-  if (days > 0) return 'text-orange-600'; // Hampir expired (< 1 minggu)
-  return 'text-red-600'; // Sudah lewat
-};
 
 // ========== STATE ==========
 const isLoading = ref(false);
@@ -476,6 +441,14 @@ const openPhotoViewer = (member) => {
   isPhotoViewerOpen.value = true;
 };
 
+// ========== VIEW MODE STATE ==========
+const STORAGE_KEY = 'memberListViewMode';
+const viewMode = ref(localStorage.getItem(STORAGE_KEY) || 'table');
+
+watch(viewMode, (newMode) => {
+  localStorage.setItem(STORAGE_KEY, newMode);
+});
+
 // ========== COMPUTED: FILTER & PAGINATION ==========
 const filteredMembers = computed(() => {
   if (!searchQuery.value) return members.value;
@@ -499,7 +472,6 @@ const paginatedMembers = computed(() => {
   return filteredMembers.value.slice(start, end);
 });
 
-// Smart pagination
 const paginationItems = computed(() => {
   const total = totalPages.value;
   const current = currentPage.value;
