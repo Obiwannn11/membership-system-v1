@@ -1,12 +1,12 @@
 <template>
    <div class="p-4 sm:p-8">
         <!-- Header - Responsive dengan buttons di kanan -->
-        <div class="flex flex-col gap-4 mb-6">
+        <div class="flex flex-col items-center gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
           <!-- Row 1: Title -->
           <h1 class="text-2xl sm:text-3xl font-bold">Daftar Anggota</h1>
         
           <!-- Row 2: Action Buttons (selalu di kanan) -->
-          <div class="flex items-center justify-end gap-2">
+          <div class="flex items-center justify-center sm:justify-end gap-2">
             <!-- View Mode Toggle dengan Tooltip -->
             <Tooltip>
               <TooltipTrigger asChild>
@@ -56,6 +56,7 @@
               <TooltipContent>Tambah Member Baru</TooltipContent>
             </Tooltip>
           </div>
+
         </div>
 
 
