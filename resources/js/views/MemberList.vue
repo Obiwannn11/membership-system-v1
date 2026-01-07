@@ -233,49 +233,18 @@
           </div>
         </div>
 
-        <!-- Pagination - Responsive -->
-        <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 mt-6 pt-4 border-t">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            :disabled="currentPage === 1"
-            @click="currentPage--"
-          >
-            <ChevronLeftIcon class="w-4 h-4" />
-            <span class="hidden sm:inline ml-1">Prev</span>
-          </Button>
-          
-          <!-- Page numbers - Hidden on mobile -->
-          <div class="hidden sm:flex gap-1">
-            <template v-for="(page, index) in paginationItems" :key="index">
-              <span v-if="page === '...'" class="px-2 py-1 text-gray-400">...</span>
-              <Button 
-                v-else
-                :variant="page === currentPage ? 'default' : 'outline'"
-                size="sm"
-                class="w-9"
-                @click="currentPage = page"
-              >
-                {{ page }}
-              </Button>
-            </template>
-          </div>
-
-          <!-- Page indicator - Mobile only -->
-          <span class="sm:hidden text-sm text-gray-500">
-            {{ currentPage }} / {{ totalPages }}
-          </span>
-
-          <Button 
-            variant="outline" 
-            size="sm" 
-            :disabled="currentPage === totalPages"
-            @click="currentPage++"
-          >
-            <span class="hidden sm:inline mr-1">Next</span>
-            <ChevronRightIcon class="w-4 h-4" />
-          </Button>
-        </div>
+        <!-- Pagination - Menggunakan Component Reusable -->
+        <AppPagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :pagination-items="paginationItems"
+          :showing-text="showingText"
+          :is-first-page="isFirstPage"
+          :is-last-page="isLastPage"
+          @prev="prevPage"
+          @next="nextPage"
+          @go-to="goToPage"
+        />
       </CardContent>
     </Card>
 
@@ -393,7 +362,9 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { memberService } from '@/services/memberService';
 import { useMemberStatus } from '@/composables/useMemberStatus';
+import { usePagination } from '@/composables/usePagination';  // TAMBAH
 import MemberCard from '@/components/member/MemberCard.vue';
+import { AppPagination } from '@/components/ui/pagination';   // TAMBAH
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -408,8 +379,6 @@ import {
   CheckCircle as CheckCircleIcon,
   Clock as ClockIcon,
   Cloud as CloudIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
   Phone as PhoneIcon,
   MapPin as MapPinIcon,
   Calendar as CalendarIcon,
@@ -440,8 +409,6 @@ const getPhotoUrl = (photo) => memberService.getPhotoUrl(photo);
 const isLoading = ref(false);
 const members = ref([]);
 const searchQuery = ref('');
-const currentPage = ref(1);
-const itemsPerPage = 5;
 
 // Preview Dialog
 const isPreviewOpen = ref(false);
@@ -471,7 +438,7 @@ watch(viewMode, (newMode) => {
   localStorage.setItem(STORAGE_KEY, newMode);
 });
 
-// ========== COMPUTED: FILTER & PAGINATION ==========
+// ========== FILTERED MEMBERS ==========
 const filteredMembers = computed(() => {
   if (!searchQuery.value) return members.value;
   
@@ -486,43 +453,20 @@ watch(searchQuery, () => {
   currentPage.value = 1;
 });
 
-const totalPages = computed(() => Math.ceil(filteredMembers.value.length / itemsPerPage));
+// ========== PAGINATION (menggunakan composable) ==========
+const {
+  currentPage,
+  totalPages,
+  paginatedItems: paginatedMembers,
+  paginationItems,
+  showingText,
+  goToPage,
+  nextPage,
+  prevPage,
+  isFirstPage,
+  isLastPage
+} = usePagination(filteredMembers, 5);
 
-const paginatedMembers = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return filteredMembers.value.slice(start, end);
-});
-
-const paginationItems = computed(() => {
-  const total = totalPages.value;
-  const current = currentPage.value;
-  const items = [];
-  
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      items.push(i);
-    }
-  } else {
-    items.push(1);
-    
-    if (current <= 3) {
-      items.push(2, 3, 4);
-      items.push('...');
-      items.push(total - 1, total);
-    } else if (current >= total - 2) {
-      items.push('...');
-      items.push(total - 3, total - 2, total - 1, total);
-    } else {
-      items.push('...');
-      items.push(current - 1, current, current + 1);
-      items.push('...');
-      items.push(total);
-    }
-  }
-  
-  return items;
-});
 
 // ========== METHODS ==========
 const loadMembers = async () => {
