@@ -13,6 +13,20 @@
     </div>
 
     <Card>
+      <CardHeader class="pb-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+          <CardTitle class="text-lg">Total: {{ filteredUsers.length }} Admin</CardTitle>
+          <!-- Search -->
+          <div class="relative w-full sm:w-64">
+            <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input 
+              v-model="searchQuery" 
+              placeholder="Cari nama atau email..." 
+              class="pl-9"
+            />
+          </div>
+        </div>
+      </CardHeader>
       <CardContent class="pt-6">
         <Table>
             <TableHeader>
@@ -24,7 +38,7 @@
                 </TableRow>
             </TableHeader>
             <TableBody>
-                <TableRow v-for="user in users" :key="user.id">
+                <TableRow v-for="user in paginatedUsers" :key="user.id">
                     <TableCell>{{ user.name }}</TableCell>
                     <TableCell>{{ user.email }}</TableCell>
                     <TableCell class="uppercase text-xs font-bold">{{ user.role }}</TableCell>
@@ -39,8 +53,26 @@
                         </div>
                     </TableCell>
                 </TableRow>
+                <TableRow v-if="paginatedUsers.length === 0">
+                  <TableCell colspan="4" class="text-center py-12 text-gray-500">
+                    {{ searchQuery ? 'Tidak ada hasil pencarian' : 'Belum ada data admin' }}
+                  </TableCell>
+                </TableRow>
             </TableBody>
         </Table>
+
+        <!-- Pagination Component -->
+        <AppPagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :pagination-items="paginationItems"
+          :showing-text="showingText"
+          :is-first-page="isFirstPage"
+          :is-last-page="isLastPage"
+          @prev="prevPage"
+          @next="nextPage"
+          @go-to="goToPage"
+        />
       </CardContent>
     </Card>
 
@@ -65,16 +97,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/lib/axios';
+import { usePagination } from '@/composables/usePagination';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { AppPagination } from '@/components/ui/pagination';
+import { Search as SearchIcon } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
 const router = useRouter();
@@ -82,6 +118,37 @@ const users = ref([]);
 const isLoading = ref(false);
 const isDialogOpen = ref(false);
 const deleteId = ref(null);
+const searchQuery = ref('');
+
+// Filtered users based on search query
+const filteredUsers = computed(() => {
+  if (!searchQuery.value) return users.value;
+  
+  const query = searchQuery.value.toLowerCase();
+  return users.value.filter(user => 
+    user.name.toLowerCase().includes(query) ||
+    user.email.toLowerCase().includes(query)
+  );
+});
+
+// Reset to page 1 when search changes
+watch(searchQuery, () => {
+  currentPage.value = 1;
+});
+
+// Pagination using composable
+const {
+  currentPage,
+  totalPages,
+  paginatedItems: paginatedUsers,
+  paginationItems,
+  showingText,
+  goToPage,
+  nextPage,
+  prevPage,
+  isFirstPage,
+  isLastPage
+} = usePagination(filteredUsers, 10);
 
 // Cek koneksi sebelum navigasi
 const checkOnlineBeforeAction = (action) => {
